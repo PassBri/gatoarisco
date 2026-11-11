@@ -67,34 +67,53 @@
     h.start(tH); h.stop(tH + dH + 0.05); lfo.start(tH); lfo.stop(tH + dH + 0.05);
     fin = tH + dH;
 
-    // 3a. gruñido grave y áspero
+    // fuente de voz suave (armónicos que caen como en una garganta, no un zumbido de sierra)
+    const fuente = (f0, t, dur, inestable) => {
+      const n = 48, re = new Float32Array(n), im = new Float32Array(n);
+      for (let i = 1; i < n; i++) im[i] = 1 / Math.pow(i, 1.75);
+      const o = ctx.createOscillator(); o.setPeriodicWave(ctx.createPeriodicWave(re, im)); o.frequency.value = f0;
+      const j = ruido(ctx, dur + 0.1), jl = filtro(ctx, 'lowpass', 14), jg = ctx.createGain(); jg.gain.value = f0 * inestable;
+      j.connect(jl).connect(jg).connect(o.frequency); j.start(t); j.stop(t + dur + 0.1);
+      return o;
+    };
+
+    // 3a. gruñido grave: voz baja y rasposa de garganta ("rrrrr")
     if (v.gruñido) {
-      const tG = tH + dH * 0.72, dG = r(0.75, 1.05), f0 = r(95, 125);
-      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f0 * 0.9, tG); o.frequency.linearRampToValueAtTime(f0 * 1.08, tG + dG * 0.4); o.frequency.linearRampToValueAtTime(f0 * 0.85, tG + dG);
-      const vib = ctx.createOscillator(); vib.frequency.value = r(5, 7); const vibG = ctx.createGain(); vibG.gain.value = f0 * 0.04; vib.connect(vibG).connect(o.frequency);
-      const aspero = ctx.createGain(); aspero.gain.value = 0.55; const am = ctx.createOscillator(); am.type = 'square'; am.frequency.value = r(24, 32); const amG = ctx.createGain(); amG.gain.value = 0.45; am.connect(amG).connect(aspero.gain);
+      const tG = tH + dH * 0.7, dG = r(0.8, 1.1), f0 = r(68, 84);
+      const o = fuente(f0, tG, dG, 0.08);
+      o.frequency.setValueAtTime(f0 * 0.92, tG); o.frequency.linearRampToValueAtTime(f0 * 1.06, tG + dG * 0.45); o.frequency.linearRampToValueAtTime(f0 * 0.88, tG + dG);
+      const raspa = ctx.createGain(); raspa.gain.value = 0.55;
+      const rn = ruido(ctx, dG + 0.1), rl = filtro(ctx, 'lowpass', 38), rg = ctx.createGain(); rg.gain.value = 1.8;   // vibración irregular de las cuerdas
+      rn.connect(rl).connect(rg).connect(raspa.gain);
       const voz = ctx.createGain();
-      [[520, 3, 1], [1150, 4, 0.55], [2500, 5, 0.25]].forEach(([f, q, g]) => { const k = ctx.createGain(); k.gain.value = g; o.connect(filtro(ctx, 'bandpass', f, q)).connect(k).connect(voz); });
-      const aire = ruido(ctx, dG), aireG = ctx.createGain(); aireG.gain.value = 0.12; aire.connect(filtro(ctx, 'bandpass', 1800, 1)).connect(aireG).connect(voz);
-      const gG = ctx.createGain(); voz.connect(aspero).connect(gG).connect(maestro);
-      env(gG, tG, [[0.14, 1.6], [dG * 0.6, 1.3], [dG, 0.0001]]);
-      [o, vib, am, aire].forEach((n) => { n.start(tG); n.stop(tG + dG + 0.05); });
+      [[420, 5, 1], [980, 7, 0.45], [2300, 10, 0.12]].forEach(([f, q, g]) => { const k = ctx.createGain(); k.gain.value = g; o.connect(filtro(ctx, 'bandpass', f, q)).connect(k).connect(voz); });
+      const cuerpo = filtro(ctx, 'lowpass', 260); const kc = ctx.createGain(); kc.gain.value = 0.5; o.connect(cuerpo).connect(kc).connect(voz);
+      const aire = ruido(ctx, dG), ag = ctx.createGain(); ag.gain.value = 0.06; aire.connect(filtro(ctx, 'bandpass', 1500, 1.2)).connect(ag).connect(voz);
+      const gG = ctx.createGain(); voz.connect(raspa).connect(filtro(ctx, 'lowpass', 2600)).connect(gG).connect(maestro);
+      env(gG, tG, [[0.16, 1.5], [dG * 0.65, 1.25], [dG, 0.0001]]);
+      [o, rn, aire].forEach((x) => { x.start(tG); x.stop(tG + dG + 0.1); });
       fin = Math.max(fin, tG + dG);
     }
 
-    // 3b. maullido de pelea: "mrrraaaow" con tono que sube y baja
+    // 3b. maullido de pelea, grave y con forma de vocal ("mrrraaaooow"). Solo para pruebas por ahora.
     if (v.maullido) {
-      const tM = tH + dH * 0.8, dM = r(0.85, 1.15), f0 = r(330, 400);
-      const o = ctx.createOscillator(); o.type = 'sawtooth';
-      o.frequency.setValueAtTime(f0, tM); o.frequency.exponentialRampToValueAtTime(f0 * 1.7, tM + dM * 0.45); o.frequency.exponentialRampToValueAtTime(f0 * 1.1, tM + dM);
-      const vib = ctx.createOscillator(); vib.frequency.value = 6.5; const vibG = ctx.createGain(); vibG.gain.value = f0 * 0.05; vib.connect(vibG).connect(o.frequency);
-      const boca = filtro(ctx, 'bandpass', 700, 3);
-      boca.frequency.setValueAtTime(600, tM); boca.frequency.linearRampToValueAtTime(1300, tM + dM * 0.5); boca.frequency.linearRampToValueAtTime(750, tM + dM);
-      const boca2 = filtro(ctx, 'bandpass', 2600, 5);
-      const gM = ctx.createGain(), k2 = ctx.createGain(); k2.gain.value = 0.35;
-      o.connect(boca).connect(gM); o.connect(boca2).connect(k2).connect(gM); gM.connect(maestro);
-      env(gM, tM, [[0.12, 1.3], [dM * 0.5, 1.5], [dM, 0.0001]]);
-      [o, vib].forEach((n) => { n.start(tM); n.stop(tM + dM + 0.05); });
+      const tM = tH + dH * 0.8, dM = r(1.0, 1.25), f0 = r(185, 215);
+      const o = fuente(f0, tM, dM, 0.035);
+      o.frequency.setValueAtTime(f0, tM); o.frequency.linearRampToValueAtTime(f0 * 1.55, tM + dM * 0.4); o.frequency.linearRampToValueAtTime(f0 * 1.35, tM + dM * 0.65); o.frequency.linearRampToValueAtTime(f0 * 0.95, tM + dM);
+      const vib = ctx.createOscillator(); vib.frequency.value = 5.5; const vg = ctx.createGain(); vg.gain.value = f0 * 0.03; vib.connect(vg).connect(o.frequency);
+      const voz = ctx.createGain();
+      // formantes que pasan de "m" (cerrada) a "a" (abierta) a "o" y "w"
+      const F = [[[380, 900, 2500], 0], [[850, 1350, 2700], 0.35], [[700, 1150, 2600], 0.65], [[420, 820, 2400], 1]];
+      [0, 1, 2].forEach((i) => {
+        const bp = filtro(ctx, 'bandpass', F[0][0][i], 1); const k = ctx.createGain(); k.gain.value = [1, 0.55, 0.15][i];
+        F.forEach(([fs, t]) => { bp.frequency.linearRampToValueAtTime(fs[i], tM + t * dM); });
+        bp.Q.value = F[1][0][i] / [110, 130, 180][i];
+        o.connect(bp).connect(k).connect(voz);
+      });
+      const aire = ruido(ctx, dM), ag = ctx.createGain(); ag.gain.value = 0.05; aire.connect(filtro(ctx, 'bandpass', 1200, 1)).connect(ag).connect(voz);
+      const gM = ctx.createGain(); voz.connect(filtro(ctx, 'lowpass', 3200)).connect(gM).connect(maestro);
+      env(gM, tM, [[0.18, 1.8], [dM * 0.45, 2.2], [dM * 0.8, 1.4], [dM, 0.0001]]);
+      [o, vib, aire].forEach((x) => { x.start(tM); x.stop(tM + dM + 0.1); });
       fin = Math.max(fin, tM + dM);
     }
     return fin - t0;
@@ -106,7 +125,7 @@
       ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
       if (ctx.state === 'suspended') ctx.resume();
       const x = Math.random();
-      window.gatoSonido(ctx, ctx.destination, ctx.currentTime + 0.01, { gruñido: x < 0.6, maullido: x >= 0.6 && x < 0.85 });
+      window.gatoSonido(ctx, ctx.destination, ctx.currentTime + 0.01, { gruñido: x < 0.65 });
     } catch (e) { /* sin audio */ }
   }
 
