@@ -1,0 +1,92 @@
+{
+  "categorias": [
+    { "id": "pines", "nombre": "Pines", "detalle": "Línea Lostpin · metal y esmalte", "imagen": "pin-gato-astronauta" },
+    { "id": "stickers", "nombre": "Stickers", "detalle": "Troquelados y packs", "imagen": "sticker-gato" },
+    { "id": "parches", "nombre": "Parches", "detalle": "Bordados para coser o planchar", "imagen": "parche-estrella" },
+    { "id": "ropa", "nombre": "Ropa", "detalle": "Camisetas y gorras", "imagen": "camiseta-arisca" },
+    { "id": "llaveros", "nombre": "Llaveros", "detalle": "Acrílico y metal", "imagen": "llavero-calavera" }
+  ],
+  "productos": [
+    {
+      "id": "pin-gato-astronauta", "nombre": "Gato astronauta", "categoria": "pines", "linea": "Lostpin",
+      "precio": 18000, "precioAntes": 22000, "stock": 3, "destacado": true, "limitado": "Edición numerada de 150",
+      "descripcion": "El explorador de la colección Gatos Orbitales. Pin de esmalte duro con borde dorado y casco brillante.",
+      "atributos": { "Tamaño": "30 mm", "Esmalte": "Duro", "Cierre": "Mariposa metálica ×2" },
+      "variantes": { "nombre": "Acabado", "opciones": ["Dorado", "Plateado", "Níquel negro"] }
+    },
+    {
+      "id": "pin-calavera", "nombre": "Calavera arisca", "categoria": "pines", "linea": "Lostpin",
+      "precio": 12000, "stock": 24, "destacado": true, "nuevo": true,
+      "descripcion": "El gato calavera de la marca en esmalte menta sobre fondo noche.",
+      "atributos": { "Tamaño": "28 mm", "Esmalte": "Blando", "Cierre": "Mariposa de goma ×2" },
+      "variantes": { "nombre": "Acabado", "opciones": ["Plateado", "Níquel negro"] }
+    },
+    {
+      "id": "pin-cactus", "nombre": "Cactus en flor", "categoria": "pines", "linea": "Lostpin",
+      "precio": 10000, "stock": 58,
+      "descripcion": "Un cactus que florece en tu morral. Esmalte duro con detalles plateados.",
+      "atributos": { "Tamaño": "35 mm", "Esmalte": "Duro", "Cierre": "Mariposa de goma" }
+    },
+    {
+      "id": "pin-corazon", "nombre": "Corazón glitter", "categoria": "pines", "linea": "Lostpin",
+      "precio": 10000, "stock": 12,
+      "descripcion": "Corazón con esmalte brillante y borde dorado.",
+      "atributos": { "Tamaño": "25 mm", "Esmalte": "Glitter", "Cierre": "Mariposa de goma" }
+    },
+    {
+      "id": "pin-rombo", "nombre": "Rombo cósmico", "categoria": "pines", "linea": "Lostpin",
+      "precio": 15000, "stock": 40, "preventa": "Despacho desde el 30 de noviembre",
+      "descripcion": "Geometría espacial con un punto menta en el centro.",
+      "atributos": { "Tamaño": "28 mm", "Esmalte": "Duro", "Cierre": "Mariposa metálica" }
+    },
+    {
+      "id": "pin-atardecer", "nombre": "Atardecer", "categoria": "pines", "linea": "Lostpin",
+      "precio": 12000, "stock": 0,
+      "descripcion": "Un atardecer andino en níquel negro.",
+      "atributos": { "Tamaño": "30 mm", "Esmalte": "Duro", "Cierre": "Mariposa metálica" }
+    },
+    {
+      "id": "sticker-gato", "nombre": "Sticker Gato arisco", "categoria": "stickers",
+      "precio": 5000, "stock": 120, "destacado": true,
+      "descripcion": "Sticker troquelado en vinilo resistente al agua, ideal para portátil, termo o casco.",
+      "atributos": { "Tamaño": "8 cm", "Material": "Vinilo mate", "Uso": "Exterior e interior" }
+    },
+    {
+      "id": "sticker-pack", "nombre": "Pack de 5 stickers", "categoria": "stickers",
+      "precio": 15000, "precioAntes": 25000, "stock": 40,
+      "descripcion": "Cinco diseños surtidos de la tienda en un solo pack.",
+      "atributos": { "Cantidad": "5 stickers", "Tamaño": "5 a 8 cm", "Material": "Vinilo" }
+    },
+    {
+      "id": "parche-estrella", "nombre": "Parche Estrella", "categoria": "parches",
+      "precio": 12000, "stock": 30,
+      "descripcion": "Parche bordado con borde de puntada menta.",
+      "atributos": { "Tamaño": "7 cm", "Tipo": "Bordado", "Fijación": "Para planchar o coser" }
+    },
+    {
+      "id": "parche-calavera", "nombre": "Parche Calavera", "categoria": "parches",
+      "precio": 15000, "stock": 18, "nuevo": true,
+      "descripcion": "El gato calavera bordado en forma hexagonal.",
+      "atributos": { "Tamaño": "8 cm", "Tipo": "Bordado", "Fijación": "Para planchar o coser" }
+    },
+    {
+      "id": "camiseta-arisca", "nombre": "Camiseta Arisca", "categoria": "ropa",
+      "precio": 45000, "stock": 26, "destacado": true,
+      "descripcion": "Camiseta negra de algodón con el gato calavera estampado en menta.",
+      "atributos": { "Material": "Algodón", "Estampado": "Serigrafía", "Corte": "Unisex" },
+      "variantes": { "nombre": "Talla", "opciones": ["S", "M", "L", "XL"] }
+    },
+    {
+      "id": "gorra-arisca", "nombre": "Gorra Arisca", "categoria": "ropa",
+      "precio": 38000, "stock": 15,
+      "descripcion": "Gorra negra de seis paneles con el logo bordado.",
+      "atributos": { "Material": "Dril", "Logo": "Bordado", "Ajuste": "Hebilla trasera" }
+    },
+    {
+      "id": "llavero-calavera", "nombre": "Llavero Calavera", "categoria": "llaveros",
+      "precio": 12000, "stock": 35,
+      "descripcion": "Llavero de acrílico translúcido con argolla metálica.",
+      "atributos": { "Tamaño": "6 cm", "Material": "Acrílico", "Argolla": "Metálica" }
+    }
+  ]
+}
