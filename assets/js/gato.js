@@ -92,5 +92,6 @@
   addEventListener('scroll', () => { if (!pendiente) { pendiente = true; requestAnimationFrame(mirar); } }, { passive: true });
 
   window.gatoMontar = montar;
+  window.gatoBufido = bufido;
   window.gatoMirar = mirar;
 })();

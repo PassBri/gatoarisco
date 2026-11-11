@@ -149,6 +149,11 @@
     DATA = await r.json();
     return DATA;
   }
+  const fotoCat = (c) => {
+    if (c.imagen && c.imagen.includes('/')) return esc(c.imagen);
+    const p = (c.imagen && DATA.productos.find((x) => x.id === c.imagen)) || DATA.productos.find((x) => x.categoria === c.id);
+    return p ? foto(p) : (c.imagen ? img(c.imagen) : 'assets/img/marca/gatoarisco-icono-noche.png');
+  };
   const catName = (id) => (DATA.categorias.find((c) => c.id === id) || {}).nombre || id;
 
   const CLAW = '<svg class="claw" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path pathLength="100" d="M22 8 L44 92"/><path pathLength="100" d="M42 4 L64 88"/><path pathLength="100" d="M62 8 L84 92"/></svg>';
@@ -195,7 +200,7 @@
     if (cats) cats.innerHTML = D.categorias.map((c) => `
       <a class="panel brackets cat" href="tienda.html?cat=${c.id}">
         <small>${esc(c.detalle)}</small>
-        <img src="${c.imagen && c.imagen.includes('/') ? esc(c.imagen) : img(c.imagen)}" ${SIN_FOTO} alt="" loading="lazy" width="92" height="92">
+        <img src="${fotoCat(c)}" ${SIN_FOTO} alt="" loading="lazy" width="92" height="92">
         <strong>${esc(c.nombre)}</strong>
       </a>`).join('');
     const feat = $('#destacados');

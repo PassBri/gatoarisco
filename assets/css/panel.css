@@ -192,3 +192,4 @@ button.pchip { cursor: pointer; }
   body.imprimiendo .modal-caja > header, body.imprimiendo .modal-caja > footer, body.imprimiendo .modal-cuerpo > .botones { display: none !important; }
   body.imprimiendo .recibo { border: 0; }
 }
+.ico-btn:disabled { opacity: .25; cursor: default; pointer-events: none; }

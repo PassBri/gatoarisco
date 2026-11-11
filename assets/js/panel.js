@@ -421,6 +421,31 @@
     },
   };
 
+  const fotoCategoria = (c) => {
+    if (c.imagen && c.imagen.includes('/')) return c.imagen;
+    const p = (c.imagen && prod(c.imagen)) || DB.productos.find((x) => x.categoria_id === c.id && x.activo);
+    return p ? (p.imagen || `assets/img/productos/${p.id}.svg`) : 'assets/img/marca/gatoarisco-icono-noche.png';
+  };
+  const categoriasOrdenadas = () => DB.categorias.slice().sort((a, b) => (a.orden || 0) - (b.orden || 0) || a.nombre.localeCompare(b.nombre));
+
+  VISTAS.categorias = {
+    titulo: 'Categorías', boton: ['nueva-categoria', 'Nueva categoría'],
+    html() {
+      const lista = categoriasOrdenadas();
+      const cuenta = {}; DB.productos.forEach((p) => { if (p.activo) cuenta[p.categoria_id] = (cuenta[p.categoria_id] || 0) + 1; });
+      return `<p class="nota">Las categorías ordenan la tienda: aparecen como tarjetas en el inicio y como filtros en la tienda, en este orden.</p>
+      ${lista.length ? `<table class="tabla"><thead><tr><th></th><th>Categoría</th><th>Descripción corta</th><th class="der">Productos</th><th>Orden</th><th></th></tr></thead><tbody>
+      ${lista.map((c, i) => `<tr>
+        <td><img class="mini" src="${esc(fotoCategoria(c))}" alt=""></td>
+        <td data-l="Categoría"><b>${esc(c.nombre)}</b></td>
+        <td data-l="Descripción">${esc(c.detalle || '—')}</td>
+        <td data-l="Productos" class="der num">${cuenta[c.id] || 0}</td>
+        <td data-l="Orden"><button class="ico-btn" data-accion="cat-subir" data-id="${esc(c.id)}" aria-label="Subir" ${i === 0 ? 'disabled' : ''}>↑</button><button class="ico-btn" data-accion="cat-bajar" data-id="${esc(c.id)}" aria-label="Bajar" ${i === lista.length - 1 ? 'disabled' : ''}>↓</button></td>
+        <td class="acciones"><button class="ico-btn" data-accion="editar-categoria" data-id="${esc(c.id)}" aria-label="Editar">✎</button></td>
+      </tr>`).join('')}</tbody></table>` : vacio('Todavía no hay categorías. Crea la primera para empezar a ordenar la tienda.', 'nueva-categoria', 'Crear categoría')}`;
+    },
+  };
+
   VISTAS.clientes = {
     titulo: 'Clientes', boton: ['nuevo-cliente', 'Nuevo cliente'],
     html() {
@@ -779,7 +804,7 @@
       <div class="foto-campo"><div class="foto-prev" id="p-prev">${p.imagen ? `<img src="${esc(p.imagen)}" alt="">` : '<span>Sin foto</span>'}</div>
         <div><label class="btn btn-ghost btn-sm" for="p-foto">Subir foto</label><input id="p-foto" type="file" accept="image/*" hidden><p class="nota">JPG o PNG. Se ajusta sola de tamaño.</p></div></div>
       <div class="dos"><div class="campo"><label for="p-nombre">Nombre</label><input id="p-nombre" required value="${esc(p.nombre)}"></div>
-        <div class="campo"><label for="p-cat">Categoría</label>${selector('p-cat', Object.fromEntries(DB.categorias.map((c) => [c.id, c.nombre])), p.categoria_id)}</div></div>
+        <div class="campo"><label for="p-cat">Categoría · <a href="#" data-accion="categorias" onclick="document.getElementById('modal').close()">crear otra</a></label>${selector('p-cat', Object.fromEntries(categoriasOrdenadas().map((c) => [c.id, c.nombre])), p.categoria_id)}</div></div>
       <div class="tres"><div class="campo"><label for="p-precio">Precio de venta</label><input id="p-precio" inputmode="numeric" required value="${int(p.precio)}"></div>
         <div class="campo"><label for="p-antes">Precio antes (opcional)</label><input id="p-antes" inputmode="numeric" value="${p.precio_antes || ''}"></div>
         <div class="campo"><label for="p-costo">Costo</label><input id="p-costo" inputmode="numeric" value="${int(p.costo)}"></div></div>
@@ -862,13 +887,47 @@
       aviso('Pago registrado');
     }, { boton: 'Registrar pago' });
   }
-  function formCategorias() {
-    modal('Categorías de la tienda', `<p class="nota">Las categorías ordenan la tienda. Escribe una por línea con el formato <b>id | Nombre | detalle</b>. No cambies el id de las que ya tienen productos.</p>
-      <div class="campo"><textarea id="cat-txt" rows="8">${esc(DB.categorias.slice().sort((a, b) => a.orden - b.orden).map((c) => `${c.id} | ${c.nombre} | ${c.detalle || ''}`).join('\n'))}</textarea></div>`, async (f) => {
-      const filas = val(f, 'cat-txt').split('\n').map((l) => l.split('|').map((x) => x.trim())).filter((x) => x[0]);
-      for (const [i, [id, nombre, detalle]] of filas.entries()) { const prev = porId('categorias', slug(id)) || {}; await guardar('categorias', Object.assign({}, prev, { id: slug(id), nombre: nombre || id, detalle: detalle || null, orden: i, imagen: prev.imagen || null })); }
-      aviso('Categorías guardadas');
+  function formCategoria(c) {
+    const nueva = !c; c = c || { id: '', nombre: '', detalle: '', imagen: null, orden: DB.categorias.reduce((m, x) => Math.max(m, x.orden || 0), -1) + 1 };
+    const enCat = DB.productos.filter((p) => p.categoria_id === c.id);
+    const usaProducto = c.imagen && !c.imagen.includes('/');
+    let fotoNueva = null;
+    modal(nueva ? 'Nueva categoría' : esc(c.nombre), `
+      <div class="foto-campo"><div class="foto-prev" id="k-prev"><img src="${esc(fotoCategoria(c))}" alt=""></div>
+        <div><label class="btn btn-ghost btn-sm" for="k-foto">Subir foto</label><input id="k-foto" type="file" accept="image/*" hidden>
+        <p class="nota">O usa la foto de uno de sus productos.</p></div></div>
+      <div class="campo"><label for="k-nombre">Nombre</label><input id="k-nombre" required value="${esc(c.nombre)}" placeholder="Bolsos, Gorras, Tazas…"></div>
+      <div class="campo"><label for="k-detalle">Descripción corta</label><input id="k-detalle" value="${esc(c.detalle || '')}" placeholder="Bordados para coser o planchar"></div>
+      ${enCat.length ? `<div class="campo"><label for="k-prod">Foto de la tarjeta</label><select id="k-prod"><option value="">Primer producto de la categoría</option>${enCat.map((p) => `<option value="${esc(p.id)}"${usaProducto && c.imagen === p.id ? ' selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select></div>` : '<p class="nota">Cuando la categoría tenga productos, podrás usar la foto de uno de ellos.</p>'}`,
+    async (f) => {
+      const nombre = val(f, 'k-nombre');
+      let id = c.id;
+      if (nueva) { id = slug(nombre); let k = 2; while (porId('categorias', id)) id = slug(nombre) + '-' + k++; }
+      let imagen = c.imagen && c.imagen.includes('/') ? c.imagen : null;
+      const elegido = $('#k-prod', f) ? $('#k-prod', f).value : '';
+      if (elegido) imagen = elegido;
+      if (fotoNueva) { estado('Subiendo foto…', 'ocupado'); try { imagen = await ST.subirFoto(fotoNueva, 'categoria-' + id); } catch (e) { aviso('No se pudo subir la foto: ' + e.message, 'error'); return false; } }
+      await guardar('categorias', Object.assign({}, c, { id, nombre, detalle: val(f, 'k-detalle') || null, imagen }));
+      aviso(nueva ? `Categoría "${nombre}" creada` : 'Categoría actualizada');
+    }, {
+      borrar: nueva ? null : 'Borrar categoría',
+      confirmarBorrar: '¿Borrar esta categoría?',
+      async alBorrar() {
+        if (DB.productos.some((p) => p.categoria_id === c.id)) { aviso('Primero pasa sus productos a otra categoría (o bórralos). Tiene ' + DB.productos.filter((p) => p.categoria_id === c.id).length + ' productos.', 'error'); return; }
+        await borrar('categorias', c.id); aviso('Categoría borrada');
+      },
+      alAbrir(f) {
+        $('#k-foto', f).addEventListener('change', (e) => { const file = e.target.files[0]; if (!file) return; fotoNueva = file; $('#k-prev', f).innerHTML = `<img src="${URL.createObjectURL(file)}" alt="">`; });
+        const sel = $('#k-prod', f); if (sel) sel.addEventListener('change', () => { if (fotoNueva) return; const p = prod(sel.value) || enCat[0]; if (p) $('#k-prev img', f).src = p.imagen || `assets/img/productos/${p.id}.svg`; });
+      },
     });
+  }
+  async function moverCategoria(id, paso) {
+    const lista = categoriasOrdenadas(); const i = lista.findIndex((c) => c.id === id); const j = i + paso;
+    if (i < 0 || j < 0 || j >= lista.length) return;
+    [lista[i], lista[j]] = [lista[j], lista[i]];
+    for (const [k, c] of lista.entries()) if ((c.orden || 0) !== k) await guardar('categorias', Object.assign({}, c, { orden: k }));
+    render();
   }
 
   /* =================================================================
@@ -944,7 +1003,7 @@
     'nueva-venta': () => formVenta(), 'editar-venta': (b) => formVenta(porId('ventas', b.dataset.id)),
     'nueva-compra': () => formCompra(), 'editar-compra': (b) => formCompra(porId('compras', b.dataset.id)),
     'nuevo-producto': () => formProducto(), 'editar-producto': (b) => formProducto(prod(b.dataset.id)),
-    'nuevo-ajuste': () => formAjuste(), ajustar: (b) => formAjuste(b.dataset.id), categorias: () => formCategorias(),
+    'nuevo-ajuste': () => formAjuste(), ajustar: (b) => formAjuste(b.dataset.id), categorias: () => irA('categorias'), 'nueva-categoria': () => formCategoria(), 'editar-categoria': (b) => formCategoria(porId('categorias', b.dataset.id)), 'cat-subir': (b) => moverCategoria(b.dataset.id, -1), 'cat-bajar': (b) => moverCategoria(b.dataset.id, 1),
     'nuevo-cliente': () => formCliente(), 'editar-cliente': (b) => formCliente(porId('clientes', b.dataset.id)),
     'nuevo-proveedor': () => formProveedor(), 'editar-proveedor': (b) => formProveedor(porId('proveedores', b.dataset.id)),
     'nuevo-gasto': () => formGasto(), 'editar-gasto': (b) => formGasto(porId('gastos', b.dataset.id)),

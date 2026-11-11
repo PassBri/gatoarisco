@@ -403,7 +403,8 @@ main { flex: 1; padding-bottom: 96px; }
 .gato-asoma.fsss .pupila { transform: scaleX(.45); }
 .gato-asoma.fsss .ojos { filter: drop-shadow(0 0 22px rgba(255, 181, 71, .8)); }
 @keyframes erizo { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-4px, -8px) scale(1.07); } 40% { transform: translate(4px, -8px) scale(1.07); } 60% { transform: translate(-3px, -4px); } 80% { transform: translate(3px, -2px); } }
-.globo { position: absolute; right: 78%; bottom: 74%; width: max-content; max-width: 220px; margin: 0; padding: 10px 14px; border-radius: 14px 14px 2px 14px; background: #fff; color: var(--night); border: 1px solid var(--mint-line); box-shadow: var(--shadow); font-family: var(--font-display); font-size: 15px; letter-spacing: 0.02em; opacity: 0; transform: translateY(6px) scale(.96); transform-origin: bottom right; transition: opacity .2s ease, transform .2s ease; pointer-events: none; }
+.globo { position: absolute; right: -6px; bottom: calc(100% + 10px); z-index: 4; width: max-content; max-width: 230px; margin: 0; padding: 10px 14px; border-radius: 14px 14px 4px 14px; background: #fff; color: var(--night); border: 1px solid var(--mint-line); box-shadow: 0 12px 30px -10px rgba(11, 26, 42, .35); font-family: var(--font-body); font-weight: 500; font-size: 15px; line-height: 1.35; opacity: 0; transform: translateY(6px) scale(.96); transform-origin: bottom right; transition: opacity .2s ease, transform .2s ease; pointer-events: none; }
+.globo::after { content: ""; position: absolute; right: 34px; bottom: -7px; width: 12px; height: 12px; background: #fff; border-right: 1px solid var(--mint-line); border-bottom: 1px solid var(--mint-line); transform: rotate(45deg); }
 .gato-asoma.habla .globo { opacity: 1; transform: none; }
 @media (max-width: 899px) { .gato-btn { width: 84px; } .gato-btn .patas i { width: 22px; height: 11px; } }
 @media (prefers-reduced-motion: reduce) { .gato .ojos, .gato-asoma.fsss .gato { animation: none; } }
@@ -431,3 +432,12 @@ main { flex: 1; padding-bottom: 96px; }
 .switch[aria-checked="true"] .switch-pista { background: var(--mint); border-color: var(--mint-line); box-shadow: 0 0 14px rgba(115, 216, 199, .5); }
 .switch[aria-checked="true"] .switch-bola { transform: translateX(28px); }
 .switch:focus-visible { outline: 2px solid var(--mint); outline-offset: 4px; border-radius: 12px; }
+
+/* gato que camina y galopa sobre el borde de una sección */
+.gato-corre { position: relative; height: 96px; margin-top: -24px; touch-action: manipulation; }
+.gato-corre-lienzo { position: absolute; inset: 0; display: block; }
+.gato-corre[data-riel]::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--mint-line) 12%, var(--mint-line) 88%, transparent); }
+.globo-corre { position: absolute; top: -6px; margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--night); color: #fff; font-family: var(--font-display); letter-spacing: .06em; font-size: 14px; white-space: nowrap; opacity: 0; transform: translateY(4px); transition: opacity .15s ease, transform .15s ease; pointer-events: none; box-shadow: 0 0 0 1px rgba(255, 181, 71, .6), 0 8px 20px -8px rgba(11, 26, 42, .5); }
+.globo-corre.ver { opacity: 1; transform: none; }
+@media (max-width: 599px) { .gato-corre { height: 78px; margin-top: -18px; } }
+@media (prefers-reduced-motion: reduce) { .gato-corre { display: none; } }
