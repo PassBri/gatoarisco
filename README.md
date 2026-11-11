@@ -1,6 +1,6 @@
 # Gatoarisco · Estilo con garra
 
-Tienda web responsive de **Gatoarisco**: pines (línea Lostpin), stickers, parches, ropa y llaveros.
+Tienda web responsive de **Gatoarisco**: pines, stickers, parches, ropa y llaveros.
 Funciona en celular y computador, y se puede instalar en el celular como app (PWA).
 
 **Sitio publicado:** https://passbri.github.io/gatoarisco/

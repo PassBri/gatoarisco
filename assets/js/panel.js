@@ -811,7 +811,7 @@
       <div class="tres">${nuevo ? '<div class="campo"><label for="p-stock">Existencias iniciales</label><input id="p-stock" type="number" min="0" value="0"></div>' : `<div class="campo"><label>Existencias</label><input disabled value="${stockDe(p.id)} (usa Ajustar)"></div>`}
         <div class="campo"><label for="p-min">Avisar cuando queden</label><input id="p-min" type="number" min="0" value="${int(p.stock_min)}"></div>
         <div class="campo"><label for="p-prov">Proveedor</label><select id="p-prov"><option value="">—</option>${DB.proveedores.map((x) => `<option value="${x.id}"${x.id === p.proveedor_id ? ' selected' : ''}>${esc(x.nombre)}</option>`).join('')}</select></div></div>
-      <div class="dos"><div class="campo"><label for="p-linea">Línea (opcional)</label><input id="p-linea" value="${esc(p.linea || '')}" placeholder="Lostpin"></div>
+      <div class="dos"><div class="campo"><label for="p-linea">Línea (opcional)</label><input id="p-linea" value="${esc(p.linea || '')}" placeholder="Gatos Orbitales"></div>
         <div class="campo"><label for="p-ari">Nivel de arisquez</label>${selector('p-ari', { 1: '1 · Casi dócil', 2: '2 · Tímido', 3: '3 · Con carácter', 4: '4 · Muy arisco', 5: '5 · Indomable' }, p.arisquez || 3)}</div></div>
       <div class="campo"><label for="p-desc">Descripción</label><textarea id="p-desc" rows="2">${esc(p.descripcion || '')}</textarea></div>
       <div class="campo"><label for="p-humor">Lo que dice el gato</label><input id="p-humor" value="${esc(p.humor || '')}" placeholder="Se ve suave. No te confíes."></div>
