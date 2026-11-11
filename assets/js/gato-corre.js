@@ -189,9 +189,31 @@
         const a = enAire ? 0.45 + (s.marcha === 'galope' ? 0.5 : 0.8) * Math.sin(Math.PI * Math.min(1, u * 1.15)) : 0.32 + atras * 0.55;
         const corvejon = { x: pie.x - 11 * Math.sin(a), y: pie.y - 11 * Math.cos(a) };
         const [rodilla, fin] = ik(raiz, corvejon, 16, 17, -1);
-        hueso(raiz, rodilla, cerca ? 14 : 11, 7.6); hueso(rodilla, fin, 7.4, 4.3); hueso(fin, pie, 4.1, 3.5);
+        // pierna trasera completa: muslo y pantorrilla forman una banda gruesa desde el anca hasta el talón;
+        // la rodilla queda adelante bajo el ijar y el metatarso baja delgado hasta los dedos
+        const tib = { x: fin.x - rodilla.x, y: fin.y - rodilla.y }, tl = Math.hypot(tib.x, tib.y) || 1;
+        const ut = { x: tib.x / tl, y: tib.y / tl };                         // de la rodilla al talón
+        const at = { x: -ut.y, y: ut.x };                                    // lado de atrás de la tibia (pantorrilla)
+        const ft = { x: -at.x, y: -at.y };                                   // lado de adelante
+        const mid = { x: (rodilla.x + fin.x) / 2, y: (rodilla.y + fin.y) / 2 };
+        const isq = { x: raiz.x - 10.5, y: raiz.y + 2.5 };
+        const pant = { x: mid.x + at.x * 4.4 - ut.x * 2, y: mid.y + at.y * 4.4 - ut.y * 2 };
+        const talonAtras = { x: fin.x + at.x * 2.1, y: fin.y + at.y * 2.1 }, talonFrente = { x: fin.x + ft.x * 1.9, y: fin.y + ft.y * 1.9 };
+        const rodillaFrente = { x: rodilla.x + ft.x * 3.4, y: rodilla.y + ft.y * 3.4 };
+        ctx.beginPath();
+        ctx.moveTo(raiz.x + 8.5, raiz.y - 3);                                                        // ijar
+        ctx.quadraticCurveTo(raiz.x + 1, raiz.y - 9, isq.x + 1, isq.y - 6);                           // cadera
+        ctx.quadraticCurveTo(isq.x - 2.5, isq.y - 2, isq.x, isq.y);                                   // isquion
+        ctx.quadraticCurveTo(isq.x + 0.5, (isq.y + pant.y) / 2 + 2, pant.x, pant.y);                  // detrás del muslo
+        ctx.quadraticCurveTo(fin.x + at.x * 2.6 - ut.x * 3.5, fin.y + at.y * 2.6 - ut.y * 3.5, talonAtras.x, talonAtras.y);   // tendón de Aquiles
+        ctx.lineTo(talonFrente.x, talonFrente.y);                                                    // corvejón
+        ctx.quadraticCurveTo(mid.x + ft.x * 2.4, mid.y + ft.y * 2.4, rodillaFrente.x, rodillaFrente.y);   // frente de la tibia
+        ctx.quadraticCurveTo(rodilla.x + 6, rodilla.y - 5, raiz.x + 8.5, raiz.y - 3);                // rodilla al ijar
+        ctx.fill();
+        ctx.beginPath(); ctx.arc(fin.x, fin.y, 2.1, 0, TAU); ctx.fill();
+        hueso(fin, pie, 3.9, 3.3);
         // "pantalones": pelo largo detrás del muslo
-        if (cerca) { const n = { x: -(rodilla.y - raiz.y), y: rodilla.x - raiz.x }; const m = Math.hypot(n.x, n.y) || 1; mechones([0.2, 0.35, 0.5, 0.65, 0.8].map((t) => ({ x: lerp(raiz.x, rodilla.x, t) - 5.5 * n.x / m, y: lerp(raiz.y, rodilla.y, t) - 5.5 * n.y / m })), -n.x / m, -n.y / m, 2.8, 3, 1.1); }
+        if (cerca) mechones([0.3, 0.5, 0.7].map((t) => bez({ x: raiz.x - 9.5, y: raiz.y + 1 }, { x: raiz.x - 9, y: raiz.y + 9 }, { x: rodilla.x - 3.2, y: rodilla.y + 2.4 }, t)), -0.8, 0.6, 2, 3, 0.9);
         ctx.beginPath(); ctx.ellipse(pie.x + 2.2, pie.y - 1.6, 4.4, 2.4, 0, 0, TAU); ctx.fill();
               } else {
         const giro = enAire ? -1.25 * Math.sin(Math.PI * Math.min(1, u * 1.35)) : 0;
@@ -235,7 +257,7 @@
       PATAS.filter((q) => !q.cerca).forEach((q) => pata(q, q.tr ? { x: cadera.x + 3, y: cadera.y + 1 } : { x: hombro.x - 2, y: hombro.y + 1 }));
 
       // cola con pelo
-      const base = { x: cadera.x - 8, y: cadera.y - 6 };
+      const base = { x: cadera.x - 9, y: cadera.y - 8 };
       let ang, curva;
       if (galope) { ang = Math.PI + 0.12 + 0.16 * Math.sin(c + 1.2) * a; curva = 0.012; }
       else if (s.modo === 'quieto') { ang = Math.PI - 0.55; curva = 0.115; }
@@ -264,13 +286,15 @@
 
       // torso
       const lomo = 2 + s.arco * 14 + Math.max(0, flex) * 7 - Math.max(0, -flex) * 2.5;
-      const anca = { x: cadera.x - 4, y: cadera.y - 9 }, cruz = { x: hombro.x - 3, y: hombro.y - 10 - escap };
+      const anca = { x: cadera.x - 3, y: cadera.y - 10.5 }, cruz = { x: hombro.x - 3, y: hombro.y - 10 - escap };
       const medio = { x: (anca.x + cruz.x) / 2, y: (anca.y + cruz.y) / 2 - lomo };
-      const pecho = { x: hombro.x - 1, y: hombro.y + 13 }, ijada = { x: cadera.x - 5, y: cadera.y + 9 };
-      const v1 = { x: hombro.x - 13, y: hombro.y + 13 - s.arco * 2 }, v2 = { x: cadera.x + 13, y: cadera.y + 4 - Math.max(0, -flex) * 2 };
+      const pecho = { x: hombro.x - 1, y: hombro.y + 13 }, ijada = { x: cadera.x + 5, y: cadera.y + 8 };
+      const v1 = { x: hombro.x - 13, y: hombro.y + 13 - s.arco * 2 }, v2 = { x: cadera.x + 16, y: cadera.y + 6 - Math.max(0, -flex) * 2 };
       ctx.fillStyle = pielCerca; ctx.beginPath();
       ctx.moveTo(ijada.x, ijada.y);
-      ctx.quadraticCurveTo(cadera.x - 15, cadera.y - 2, anca.x, anca.y);
+      ctx.quadraticCurveTo(cadera.x - 4, cadera.y + 10, cadera.x - 10.5, cadera.y + 2.5);  // bajo el anca hasta el isquion
+      ctx.quadraticCurveTo(cadera.x - 14, cadera.y - 2.5, cadera.x - 9.5, cadera.y - 8.5);   // anca redondeada en pendiente
+      ctx.quadraticCurveTo(cadera.x - 7, cadera.y - 10.5, anca.x, anca.y);
       ctx.quadraticCurveTo(medio.x, medio.y, cruz.x, cruz.y);
       ctx.quadraticCurveTo(hombro.x + 10, hombro.y - 6, hombro.x + 10, hombro.y + 4);
       ctx.quadraticCurveTo(hombro.x + 9, hombro.y + 13, pecho.x, pecho.y);
@@ -283,15 +307,14 @@
       if (s.arco > 0.15) mechones(Array.from({ length: 22 }, (_, i) => bez(anca, medio, cruz, (i + 0.5) / 22)), 0.15, -1, 4.6 * s.arco, 30, 0.9);
       // masas musculares (muslo y escápula)
       ctx.fillStyle = pielCerca;
-      ctx.beginPath(); ctx.ellipse(cadera.x - 1, cadera.y + 2, 10.5, 12.5, 0.3, 0, TAU); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(hombro.x, hombro.y + 1 - escap * 0.5, 7.2, 10.5, -0.15, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(hombro.x, hombro.y + 1 - escap * 0.5, 6.5, 9.5, -0.15, 0, TAU); ctx.fill();
       const brillo = (x, y, r) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, 'rgba(150,205,215,.09)'); g.addColorStop(0.6, 'rgba(150,205,215,.04)'); g.addColorStop(1, 'rgba(150,205,215,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); };
-      brillo(cadera.x - 3, cadera.y - 4, 13); brillo(hombro.x - 1, hombro.y - 4 - escap, 10);
+      brillo(cadera.x - 1, cadera.y - 3, 11); brillo(hombro.x - 1, hombro.y - 4 - escap, 10);
       // luz de borde menta sobre el lomo
       const rim = ctx.createLinearGradient(anca.x - 8, 0, cruz.x + 8, 0);
       rim.addColorStop(0, 'rgba(166,239,226,0)'); rim.addColorStop(0.5, 'rgba(166,239,226,.55)'); rim.addColorStop(1, 'rgba(166,239,226,.15)');
       ctx.strokeStyle = rim; ctx.lineWidth = 1.1; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(cadera.x - 13, cadera.y - 4); ctx.quadraticCurveTo(cadera.x - 12, cadera.y - 8, anca.x, anca.y); ctx.quadraticCurveTo(medio.x, medio.y, cruz.x, cruz.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cadera.x - 11.5, cadera.y - 4); ctx.quadraticCurveTo(cadera.x - 10.5, cadera.y - 9, anca.x, anca.y); ctx.quadraticCurveTo(medio.x, medio.y, cruz.x, cruz.y); ctx.stroke();
 
       PATAS.filter((q) => q.cerca).forEach((q) => pata(q, q.tr ? cadera : hombro));
 
