@@ -14,24 +14,31 @@ Funciona en celular y computador, y se puede instalar en el celular como app (PW
 - El pedido se envía por WhatsApp con el detalle completo (el pago en línea con Wompi llega en la siguiente fase).
 - Página de Embajadores (3 niveles).
 - Fundación Gatoarisco (Fondo de Protección Social): ya está construida pero **oculta**.
-  Se muestra u oculta con un clic desde el panel.
+  Se muestra u oculta con un clic desde Ajustes en el panel.
 
-## Panel de administración
+## Panel de control
 
-Entra a `https://passbri.github.io/gatoarisco/panel.html` (no aparece en el menú).
+`https://passbri.github.io/gatoarisco/panel.html` (no aparece en el menú de la tienda).
 
-1. La primera vez pega una llave de GitHub (token) con permiso **Contents: Read and write** solo sobre el
-   repositorio `gatoarisco`. El panel explica cómo crearla. Queda guardada solo en ese navegador.
-2. Toca el interruptor **Fundación Gatoarisco**. El panel guarda el cambio en `data/ajustes.json`
-   y la página pública se actualiza en 1 o 2 minutos.
+- **Resumen:** ventas, utilidad bruta y neta, ticket promedio, gráfico de 30 días, más vendidos, ventas por canal y pendientes.
+- **Ventas:** registro con cliente, canal, vendedor o embajador, descuentos, envío, pago y entrega; recibo para imprimir, guardar en PDF o enviar por WhatsApp; exportar a CSV.
+- **Compras:** a proveedores; suben las existencias y actualizan el costo.
+- **Inventario:** existencias calculadas (inicial + compras + ajustes − ventas), márgenes, fotos y productos nuevos.
+- **Clientes, Proveedores y Equipo:** comisiones de embajadores (por unidad según nivel) y vendedores en calle (% de la utilidad), con pagos y saldos.
+- **Gastos, Caja y Estado de resultados** mes a mes.
+- **Ajustes:** datos de la empresa, tarifas de comisión, interruptor de la Fundación y respaldo.
+
+Los datos se guardan en **Supabase** (privados, con inicio de sesión). Mientras Supabase no esté
+conectado, el panel funciona en **modo prueba** con los datos guardados solo en el navegador.
+La guía para conectarlo está en [`supabase/LEEME.md`](supabase/LEEME.md).
 
 ## Cómo editar
 
 | Qué quieres cambiar | Archivo |
 |---|---|
 | WhatsApp, correo, envío gratis, descuento de embajador, fecha del drop | `assets/js/config.js` |
-| Productos, precios, existencias, variantes, categorías | `data/productos.json` |
-| Mostrar u ocultar la fundación (o desde el panel) | `data/ajustes.json` |
+| Productos, precios, existencias, variantes, categorías | el panel (con Supabase) o `data/productos.json` |
+| Conexión con Supabase | `assets/js/config.js` (ver `supabase/LEEME.md`) |
 | Imágenes de productos | `assets/img/productos/` (mismo nombre que el `id` del producto) |
 | Logos e íconos | `assets/img/marca/` |
 | Colores y estilos | `assets/css/styles.css` |

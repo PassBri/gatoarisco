@@ -8,6 +8,17 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const money = (n) => '$ ' + Math.round(n).toLocaleString('es-CO');
   const img = (id) => `assets/img/productos/${id}.svg`;
+  // foto del producto: la que se subió desde el panel o el dibujo de la tienda
+  const foto = (p) => esc(p.imagen || img(p.id));
+  const SIN_FOTO = `onerror="this.onerror=null;this.src='assets/img/marca/gatoarisco-icono-noche.png'"`;
+
+  /* ---------- Supabase (opcional): catálogo y existencias en tiempo real ---------- */
+  const SUPA = CFG.supabaseUrl && CFG.supabaseAnonKey;
+  async function supa(ruta) {
+    const r = await fetch(`${CFG.supabaseUrl.replace(/\/$/, '')}/rest/v1/${ruta}`, { headers: { apikey: CFG.supabaseAnonKey }, cache: 'no-store' });
+    if (!r.ok) throw new Error('Supabase ' + r.status);
+    return r.json();
+  }
 
   /* ---------- almacenamiento seguro ---------- */
   const store = {
@@ -124,6 +135,13 @@
   let DATA = null;
   async function data() {
     if (DATA) return DATA;
+    if (SUPA) {
+      try {
+        const [categorias, productos] = await Promise.all([supa('categorias?select=id,nombre,detalle,imagen&order=orden'), supa('catalogo?select=*&order=nombre')]);
+        DATA = { categorias, productos };
+        return DATA;
+      } catch (e) { /* si Supabase falla, se usa el catálogo del archivo */ }
+    }
     const r = await fetch('data/productos.json', { cache: 'no-cache' });
     DATA = await r.json();
     return DATA;
@@ -143,7 +161,7 @@
     else if (p.preventa) tag = '<span class="tag tag-mint">Preventa</span>';
     else if (p.nuevo) tag = '<span class="tag tag-mint">Nuevo</span>';
     return `<a class="panel brackets card${out ? ' is-out' : ''}" href="producto.html?id=${encodeURIComponent(p.id)}">
-      <div class="media">${tag}${CLAW}<img src="${img(p.id)}" alt="${esc(p.nombre)}" loading="lazy" width="160" height="160"></div>
+      <div class="media">${tag}${CLAW}<img src="${foto(p)}" ${SIN_FOTO} alt="${esc(p.nombre)}" loading="lazy" width="160" height="160"></div>
       <span class="cat-label">${esc(catName(p.categoria))}${p.linea ? ' · ' + esc(p.linea) : ''}</span>
       <h3>${esc(p.nombre)}</h3>
       <div class="meta"><span class="price">${money(p.precio)}${p.precioAntes ? `<s>${money(p.precioAntes)}</s>` : ''}</span>${garras(p.arisquez)}</div>
@@ -174,7 +192,7 @@
     if (cats) cats.innerHTML = D.categorias.map((c) => `
       <a class="panel brackets cat" href="tienda.html?cat=${c.id}">
         <small>${esc(c.detalle)}</small>
-        <img src="${img(c.imagen)}" alt="" loading="lazy" width="92" height="92">
+        <img src="${c.imagen && c.imagen.includes('/') ? esc(c.imagen) : img(c.imagen)}" ${SIN_FOTO} alt="" loading="lazy" width="92" height="92">
         <strong>${esc(c.nombre)}</strong>
       </a>`).join('');
     const feat = $('#destacados');
@@ -224,7 +242,7 @@
       <div class="panel brackets viewer" style="position:relative">
         <span class="ring a" aria-hidden="true"></span><span class="ring b" aria-hidden="true"></span><span class="ring c" aria-hidden="true"></span>
         <span class="scan" aria-hidden="true"></span>
-        <img src="${img(p.id)}" alt="${esc(p.nombre)}" width="300" height="300">
+        <img src="${foto(p)}" ${SIN_FOTO} alt="${esc(p.nombre)}" width="300" height="300">
       </div>
       <div style="display:flex;flex-direction:column;gap:18px">
         <p class="eyebrow"><a href="tienda.html?cat=${p.categoria}">${esc(catName(p.categoria))}</a>${p.linea ? ' · ' + esc(p.linea) : ''}</p>
@@ -283,7 +301,7 @@
       sum.hidden = false;
       list.innerHTML = t.ls.map((i) => `
         <div class="cart-item">
-          <img src="${img(i.p.id)}" alt="" width="72" height="72">
+          <img src="${foto(i.p)}" ${SIN_FOTO} alt="" width="72" height="72">
           <div>
             <h3>${esc(i.p.nombre)}</h3>
             <small>${esc(catName(i.p.categoria))}${i.variante ? ' · ' + esc(i.variante) : ''} · ${money(i.p.precio)}</small><br>
@@ -344,8 +362,13 @@
   /* ---------- ajustes que se cambian desde el panel (data/ajustes.json) ---------- */
   async function ajustes() {
     try {
-      const r = await fetch('data/ajustes.json?t=' + Date.now(), { cache: 'no-store' });
-      Object.assign(CFG, await r.json());
+      if (SUPA) {
+        const filas = await supa('ajustes_publicos?select=clave,valor');
+        filas.forEach((f) => { CFG[f.clave] = f.valor; });
+      } else {
+        const r = await fetch('data/ajustes.json?t=' + Date.now(), { cache: 'no-store' });
+        Object.assign(CFG, await r.json());
+      }
     } catch (e) { /* si falla, la fundación queda oculta */ }
     if (CFG.fundacion) document.documentElement.classList.add('con-fundacion');
     NAV = NAV_TODO.filter(([href]) => CFG.fundacion || href !== 'impacto.html');
