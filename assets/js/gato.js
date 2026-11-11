@@ -31,19 +31,82 @@
     </svg>`;
   };
 
-  /* ---- bufido sintetizado (solo suena cuando la persona toca al gato) ---- */
+  /* ---- sonido de gato arisco sintetizado: escupida + bufido + gruñido o maullido de pelea ----
+     Solo suena cuando la persona toca al gato. Se arma en capas, como suena un gato enojado de verdad. */
+  function ruido(ctx, dur) {
+    const n = Math.max(1, Math.floor(ctx.sampleRate * dur)), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+    let rosa = 0;
+    for (let i = 0; i < n; i++) { const w = Math.random() * 2 - 1; rosa = 0.97 * rosa + 0.03 * w; d[i] = w * 0.82 + rosa * 1.6; }
+    const src = ctx.createBufferSource(); src.buffer = buf; return src;
+  }
+  function env(g, t, pts) { g.gain.setValueAtTime(0.0001, t); pts.forEach(([dt, v]) => g.gain.exponentialRampToValueAtTime(Math.max(0.0001, v), t + dt)); }
+  function filtro(ctx, tipo, f, q) { const b = ctx.createBiquadFilter(); b.type = tipo; b.frequency.value = f; if (q) b.Q.value = q; return b; }
+
+  window.gatoSonido = function (ctx, destino, t0, v) {
+    v = v || {};
+    const r = (a, b) => a + Math.random() * (b - a);
+    const maestro = ctx.createGain(); maestro.gain.value = 0.9;
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4;
+    maestro.connect(comp).connect(destino);
+    let fin = 0;
+
+    // 1. escupida: golpe de aire seco
+    const esc = ruido(ctx, 0.09), gEsc = ctx.createGain();
+    esc.connect(filtro(ctx, 'highpass', 1400)).connect(filtro(ctx, 'peaking', 3500, 1)).connect(gEsc).connect(maestro);
+    env(gEsc, t0, [[0.004, 0.95], [0.03, 0.35], [0.08, 0.0001]]); esc.start(t0); esc.stop(t0 + 0.09);
+
+    // 2. bufido: ruido con resonancias de boca abierta y temblor de garganta
+    const dH = r(0.6, 0.85), tH = t0 + 0.035;
+    const h = ruido(ctx, dH + 0.05), mezcla = ctx.createGain(), gH = ctx.createGain();
+    [[2700, 1.6, 1], [4600, 2.2, 0.8], [7400, 2.5, 0.5], [10500, 3, 0.25]].forEach(([f, q, g]) => { const k = ctx.createGain(); k.gain.value = g; h.connect(filtro(ctx, 'bandpass', f * r(0.95, 1.05), q)).connect(k).connect(mezcla); });
+    const temblor = ctx.createGain(); temblor.gain.value = 0.78;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = r(19, 27); const prof = ctx.createGain(); prof.gain.value = 0.22;
+    lfo.connect(prof).connect(temblor.gain);
+    mezcla.connect(temblor).connect(gH).connect(maestro);
+    env(gH, tH, [[0.025, 1.1], [0.18, 0.85], [dH - 0.14, 0.7], [dH, 0.0001]]);
+    h.start(tH); h.stop(tH + dH + 0.05); lfo.start(tH); lfo.stop(tH + dH + 0.05);
+    fin = tH + dH;
+
+    // 3a. gruñido grave y áspero
+    if (v.gruñido) {
+      const tG = tH + dH * 0.72, dG = r(0.75, 1.05), f0 = r(95, 125);
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f0 * 0.9, tG); o.frequency.linearRampToValueAtTime(f0 * 1.08, tG + dG * 0.4); o.frequency.linearRampToValueAtTime(f0 * 0.85, tG + dG);
+      const vib = ctx.createOscillator(); vib.frequency.value = r(5, 7); const vibG = ctx.createGain(); vibG.gain.value = f0 * 0.04; vib.connect(vibG).connect(o.frequency);
+      const aspero = ctx.createGain(); aspero.gain.value = 0.55; const am = ctx.createOscillator(); am.type = 'square'; am.frequency.value = r(24, 32); const amG = ctx.createGain(); amG.gain.value = 0.45; am.connect(amG).connect(aspero.gain);
+      const voz = ctx.createGain();
+      [[520, 3, 1], [1150, 4, 0.55], [2500, 5, 0.25]].forEach(([f, q, g]) => { const k = ctx.createGain(); k.gain.value = g; o.connect(filtro(ctx, 'bandpass', f, q)).connect(k).connect(voz); });
+      const aire = ruido(ctx, dG), aireG = ctx.createGain(); aireG.gain.value = 0.12; aire.connect(filtro(ctx, 'bandpass', 1800, 1)).connect(aireG).connect(voz);
+      const gG = ctx.createGain(); voz.connect(aspero).connect(gG).connect(maestro);
+      env(gG, tG, [[0.14, 1.6], [dG * 0.6, 1.3], [dG, 0.0001]]);
+      [o, vib, am, aire].forEach((n) => { n.start(tG); n.stop(tG + dG + 0.05); });
+      fin = Math.max(fin, tG + dG);
+    }
+
+    // 3b. maullido de pelea: "mrrraaaow" con tono que sube y baja
+    if (v.maullido) {
+      const tM = tH + dH * 0.8, dM = r(0.85, 1.15), f0 = r(330, 400);
+      const o = ctx.createOscillator(); o.type = 'sawtooth';
+      o.frequency.setValueAtTime(f0, tM); o.frequency.exponentialRampToValueAtTime(f0 * 1.7, tM + dM * 0.45); o.frequency.exponentialRampToValueAtTime(f0 * 1.1, tM + dM);
+      const vib = ctx.createOscillator(); vib.frequency.value = 6.5; const vibG = ctx.createGain(); vibG.gain.value = f0 * 0.05; vib.connect(vibG).connect(o.frequency);
+      const boca = filtro(ctx, 'bandpass', 700, 3);
+      boca.frequency.setValueAtTime(600, tM); boca.frequency.linearRampToValueAtTime(1300, tM + dM * 0.5); boca.frequency.linearRampToValueAtTime(750, tM + dM);
+      const boca2 = filtro(ctx, 'bandpass', 2600, 5);
+      const gM = ctx.createGain(), k2 = ctx.createGain(); k2.gain.value = 0.35;
+      o.connect(boca).connect(gM); o.connect(boca2).connect(k2).connect(gM); gM.connect(maestro);
+      env(gM, tM, [[0.12, 1.3], [dM * 0.5, 1.5], [dM, 0.0001]]);
+      [o, vib].forEach((n) => { n.start(tM); n.stop(tM + dM + 0.05); });
+      fin = Math.max(fin, tM + dM);
+    }
+    return fin - t0;
+  };
+
   let ctx;
   function bufido() {
     try {
       ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
-      const dur = 0.45, n = Math.floor(ctx.sampleRate * dur);
-      const buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
-      for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-      const src = ctx.createBufferSource(); src.buffer = buf;
-      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3800; bp.Q.value = 0.8;
-      const g = ctx.createGain(); const t = ctx.currentTime;
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      src.connect(bp).connect(g).connect(ctx.destination); src.start();
+      if (ctx.state === 'suspended') ctx.resume();
+      const x = Math.random();
+      window.gatoSonido(ctx, ctx.destination, ctx.currentTime + 0.01, { gruñido: x < 0.6, maullido: x >= 0.6 && x < 0.85 });
     } catch (e) { /* sin audio */ }
   }
 

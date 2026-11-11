@@ -160,27 +160,49 @@
       ctx.beginPath(); ctx.arc(b.x, b.y, wb / 2, 0, TAU); ctx.fill();
     }
 
+    // pelo: valores fijos por posición para que no titile
+    const PELO = Array.from({ length: 64 }, (_, i) => 0.6 + ((Math.sin(i * 12.9898) * 43758.5453) % 1 + 1) % 1 * 0.8);
+    let pielCerca, pielLejos;
+    function pieles() {
+      pielCerca = ctx.createLinearGradient(0, -58, 0, 2);
+      pielCerca.addColorStop(0, '#2A4359'); pielCerca.addColorStop(0.35, '#16293B'); pielCerca.addColorStop(0.75, '#0B1A2A'); pielCerca.addColorStop(1, '#060F18');
+      pielLejos = ctx.createLinearGradient(0, -50, 0, 2);
+      pielLejos.addColorStop(0, '#1F3447'); pielLejos.addColorStop(1, '#0E1C29');
+    }
+    // mechones: triángulos finos a lo largo de una curva, apuntando hacia "n"
+    function mechones(puntos, nx, ny, largo, semilla, ancho = 1.6) {
+      puntos.forEach((p, i) => {
+        const l = largo * PELO[(semilla + i) % PELO.length], ang = Math.atan2(ny, nx) + (PELO[(semilla + i * 3) % PELO.length] - 1) * 0.5;
+        ctx.beginPath(); ctx.moveTo(p.x - ny * ancho, p.y + nx * ancho); ctx.lineTo(p.x + Math.cos(ang) * l, p.y + Math.sin(ang) * l); ctx.lineTo(p.x + ny * ancho, p.y - nx * ancho); ctx.fill();
+      });
+    }
+    const bez = (a, b, c, t) => ({ x: (1 - t) * (1 - t) * a.x + 2 * (1 - t) * t * b.x + t * t * c.x, y: (1 - t) * (1 - t) * a.y + 2 * (1 - t) * t * b.y + t * t * c.y });
+    const cub = (a, b, c, d, t) => { const u = 1 - t; return { x: u * u * u * a.x + 3 * u * u * t * b.x + 3 * u * t * t * c.x + t * t * t * d.x, y: u * u * u * a.y + 3 * u * u * t * b.y + 3 * u * t * t * c.y + t * t * t * d.y }; };
+
     function pata({ k, tr, cerca }, raiz) {
       const p = pies[k];
       const pie = { x: p.x - s.d, y: p.y };
-      ctx.fillStyle = cerca ? NOCHE : LEJOS;
+      ctx.fillStyle = cerca ? pielCerca : pielLejos;
       const enAire = p.estado === 'aire', u = p.u;
       if (tr) {
         const atras = clamp((raiz.x - pie.x - 4) / 26, 0, 1);
-        const a = enAire ? 0.45 + (s.marcha === "galope" ? 0.5 : 0.8) * Math.sin(Math.PI * Math.min(1, u * 1.15)) : 0.32 + atras * 0.55;
+        const a = enAire ? 0.45 + (s.marcha === 'galope' ? 0.5 : 0.8) * Math.sin(Math.PI * Math.min(1, u * 1.15)) : 0.32 + atras * 0.55;
         const corvejon = { x: pie.x - 11 * Math.sin(a), y: pie.y - 11 * Math.cos(a) };
         const [rodilla, fin] = ik(raiz, corvejon, 16, 17, -1);
-        hueso(raiz, rodilla, cerca ? 13 : 11, 7.2); hueso(rodilla, fin, 7.2, 4.4); hueso(fin, pie, 4.2, 3.6);
-        ctx.beginPath(); ctx.ellipse(pie.x + 2.2, pie.y - 1.5, 4.2, 2.3, 0, 0, TAU); ctx.fill();
-      } else {
+        hueso(raiz, rodilla, cerca ? 14 : 11, 7.6); hueso(rodilla, fin, 7.4, 4.3); hueso(fin, pie, 4.1, 3.5);
+        // "pantalones": pelo largo detrás del muslo
+        if (cerca) { const n = { x: -(rodilla.y - raiz.y), y: rodilla.x - raiz.x }; const m = Math.hypot(n.x, n.y) || 1; mechones([0.2, 0.35, 0.5, 0.65, 0.8].map((t) => ({ x: lerp(raiz.x, rodilla.x, t) - 5.5 * n.x / m, y: lerp(raiz.y, rodilla.y, t) - 5.5 * n.y / m })), -n.x / m, -n.y / m, 2.8, 3, 1.1); }
+        ctx.beginPath(); ctx.ellipse(pie.x + 2.2, pie.y - 1.6, 4.4, 2.4, 0, 0, TAU); ctx.fill();
+              } else {
         const giro = enAire ? -1.25 * Math.sin(Math.PI * Math.min(1, u * 1.35)) : 0;
         const vx = -0.9, vy = -4.6;
         const muneca = { x: pie.x + vx * Math.cos(giro) - vy * Math.sin(giro), y: pie.y + vx * Math.sin(giro) + vy * Math.cos(giro) };
         const [codo, fin] = ik(raiz, muneca, 15, 16, 1);
-        hueso(raiz, codo, cerca ? 10 : 8.5, 6); hueso(codo, fin, 5.6, 4.2);
+        hueso(raiz, codo, cerca ? 10.5 : 8.5, 6.2); hueso(codo, fin, 5.8, 4.1);
         const dedos = { x: muneca.x + 4.6 * Math.sin(-giro * 0.9 + 0.25), y: muneca.y + 4.6 * Math.cos(-giro * 0.9 + 0.25) };
-        hueso(fin, dedos, 4.2, 3.4);
-        ctx.beginPath(); ctx.ellipse(dedos.x + 1.8, dedos.y - 0.6, 3.8, 2.1, enAire ? giro * 0.6 : 0, 0, TAU); ctx.fill();
+        hueso(fin, dedos, 4.1, 3.4);
+        ctx.beginPath(); ctx.ellipse(dedos.x + 1.8, dedos.y - 0.7, 4, 2.2, enAire ? giro * 0.6 : 0, 0, TAU); ctx.fill();
+        if (cerca) mechones([{ x: codo.x - 2.5, y: codo.y + 1 }, { x: codo.x - 2, y: codo.y + 3 }], -1, 0.4, 3, 11);   // mechón del codo
       }
     }
 
@@ -204,12 +226,15 @@
 
       ctx.save();
       ctx.translate(xPantalla(), H - 1); ctx.scale(s.dir * esc, esc);
+      pieles();
 
-      ctx.fillStyle = 'rgba(11,26,42,.12)'; ctx.beginPath(); ctx.ellipse(0, 0.6, 30 + a * 8, 2, 0, 0, TAU); ctx.fill();
+      const sombra = ctx.createRadialGradient(0, 0, 2, 0, 0, 38 + a * 8);
+      sombra.addColorStop(0, 'rgba(11,26,42,.22)'); sombra.addColorStop(1, 'rgba(11,26,42,0)');
+      ctx.fillStyle = sombra; ctx.beginPath(); ctx.ellipse(0, 0.6, 38 + a * 8, 3, 0, 0, TAU); ctx.fill();
 
       PATAS.filter((q) => !q.cerca).forEach((q) => pata(q, q.tr ? { x: cadera.x + 3, y: cadera.y + 1 } : { x: hombro.x - 2, y: hombro.y + 1 }));
 
-      // cola
+      // cola con pelo
       const base = { x: cadera.x - 8, y: cadera.y - 6 };
       let ang, curva;
       if (galope) { ang = Math.PI + 0.12 + 0.16 * Math.sin(c + 1.2) * a; curva = 0.012; }
@@ -217,33 +242,56 @@
       else { ang = Math.PI - 0.38 + 0.05 * Math.sin(c * 2); curva = 0.085; }
       ang = lerp(ang, Math.PI + 1.45, s.arco); curva = lerp(curva, -0.02, s.arco);
       const latigo = s.modo === 'quieto' ? Math.sin(s.reloj * 2.6) * 0.16 : 0;
-      ctx.fillStyle = NOCHE; let p = base; const n = 13, largo = 3.7, inflada = 1 + s.arco * 1.1;
+      ctx.fillStyle = pielCerca; let p = base; const n = 13, largo = 3.7, inflada = 1 + s.arco * 1.1;
+      const cola = [p];
       for (let i = 0; i < n; i++) {
         const onda = Math.sin(s.reloj * (galope ? 10 : 3) - i * 0.5) * (0.02 + i * 0.008) * (1 - s.arco * 0.7) + (i > 7 ? latigo : 0);
         ang += curva + onda;
         const q = { x: p.x + largo * Math.cos(ang), y: p.y + largo * Math.sin(ang) };
-        hueso(p, q, (4.6 - i * 0.2) * inflada, (4.4 - i * 0.2) * inflada);
-        p = q;
+        hueso(p, q, (4.8 - i * 0.2) * inflada, (4.6 - i * 0.2) * inflada);
+        cola.push(q); p = q;
+      }
+      for (let i = 1; i < cola.length - 1; i++) {
+        for (let j = 0; j < 2; j++) {
+          const t = j / 2, A = cola[i], B = cola[i + 1] || A;
+          const P = { x: lerp(A.x, B.x, t), y: lerp(A.y, B.y, t) };
+          const dx = cola[i + 1].x - cola[i - 1].x, dy = cola[i + 1].y - cola[i - 1].y, m = Math.hypot(dx, dy) || 1, w = (4.8 - i * 0.2) * inflada / 2;
+          const atrasX = -dx / m * 0.6, atrasY = -dy / m * 0.6;   // el pelo apunta hacia la punta
+          mechones([{ x: P.x - dy / m * w * 0.85, y: P.y + dx / m * w * 0.85 }], -dy / m - atrasX, dx / m - atrasY, (0.9 + s.arco * 2.6) * (0.7 + 0.3 * j), 20 + i * 2 + j, 0.7 + s.arco * 0.3);
+          mechones([{ x: P.x + dy / m * w * 0.85, y: P.y - dx / m * w * 0.85 }], dy / m - atrasX, -dx / m - atrasY, (0.8 + s.arco * 2.6) * (0.7 + 0.3 * j), 41 + i * 2 + j, 0.7 + s.arco * 0.3);
+        }
       }
 
       // torso
       const lomo = 2 + s.arco * 14 + Math.max(0, flex) * 7 - Math.max(0, -flex) * 2.5;
       const anca = { x: cadera.x - 4, y: cadera.y - 9 }, cruz = { x: hombro.x - 3, y: hombro.y - 10 - escap };
       const medio = { x: (anca.x + cruz.x) / 2, y: (anca.y + cruz.y) / 2 - lomo };
-      ctx.fillStyle = NOCHE; ctx.beginPath();
-      ctx.moveTo(cadera.x - 5, cadera.y + 9);
+      const pecho = { x: hombro.x - 1, y: hombro.y + 13 }, ijada = { x: cadera.x - 5, y: cadera.y + 9 };
+      const v1 = { x: hombro.x - 13, y: hombro.y + 13 - s.arco * 2 }, v2 = { x: cadera.x + 13, y: cadera.y + 4 - Math.max(0, -flex) * 2 };
+      ctx.fillStyle = pielCerca; ctx.beginPath();
+      ctx.moveTo(ijada.x, ijada.y);
       ctx.quadraticCurveTo(cadera.x - 15, cadera.y - 2, anca.x, anca.y);
       ctx.quadraticCurveTo(medio.x, medio.y, cruz.x, cruz.y);
       ctx.quadraticCurveTo(hombro.x + 10, hombro.y - 6, hombro.x + 10, hombro.y + 4);
-      ctx.quadraticCurveTo(hombro.x + 9, hombro.y + 13, hombro.x - 1, hombro.y + 13);
-      ctx.bezierCurveTo(hombro.x - 13, hombro.y + 13 - s.arco * 2, cadera.x + 13, cadera.y + 4 - Math.max(0, -flex) * 2, cadera.x - 5, cadera.y + 9);
+      ctx.quadraticCurveTo(hombro.x + 9, hombro.y + 13, pecho.x, pecho.y);
+      ctx.bezierCurveTo(v1.x, v1.y, v2.x, v2.y, ijada.x, ijada.y);
       ctx.fill();
-      if (s.arco > 0.25) {
-        ctx.strokeStyle = NOCHE; ctx.lineWidth = 1.2; ctx.lineCap = 'round';
-        for (let i = 1; i < 11; i++) { const t = i / 11; const x = lerp(lerp(anca.x, medio.x, t), lerp(medio.x, cruz.x, t), t), y = lerp(lerp(anca.y, medio.y, t), lerp(medio.y, cruz.y, t), t); ctx.beginPath(); ctx.moveTo(x, y + 1); ctx.lineTo(x + (i % 2 ? 1.5 : -1), y - 4 * s.arco); ctx.stroke(); }
-      }
-      ctx.beginPath(); ctx.ellipse(cadera.x - 1, cadera.y + 2, 10.5, 12, 0.3, 0, TAU); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(hombro.x, hombro.y + 1 - escap * 0.5, 7, 10, -0.15, 0, TAU); ctx.fill();
+      // pelo del pecho y la barriga
+      mechones([0, 1, 2, 3, 4, 5].map((i) => ({ x: hombro.x + 9.5 - i * 1, y: hombro.y + 4 + i * 1.8 })), 0.75, 0.7, 2.6, 5, 1);
+      mechones([0.08, 0.17, 0.26, 0.35, 0.44, 0.53, 0.62, 0.71].map((t) => cub(pecho, v1, v2, ijada, t)), -0.3, 1, 2.1 + s.arco * 1.5, 8, 1.1);
+      // lomo erizado al bufar
+      if (s.arco > 0.15) mechones(Array.from({ length: 22 }, (_, i) => bez(anca, medio, cruz, (i + 0.5) / 22)), 0.15, -1, 4.6 * s.arco, 30, 0.9);
+      // masas musculares (muslo y escápula)
+      ctx.fillStyle = pielCerca;
+      ctx.beginPath(); ctx.ellipse(cadera.x - 1, cadera.y + 2, 10.5, 12.5, 0.3, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(hombro.x, hombro.y + 1 - escap * 0.5, 7.2, 10.5, -0.15, 0, TAU); ctx.fill();
+      const brillo = (x, y, r) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, 'rgba(150,205,215,.09)'); g.addColorStop(0.6, 'rgba(150,205,215,.04)'); g.addColorStop(1, 'rgba(150,205,215,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); };
+      brillo(cadera.x - 3, cadera.y - 4, 13); brillo(hombro.x - 1, hombro.y - 4 - escap, 10);
+      // luz de borde menta sobre el lomo
+      const rim = ctx.createLinearGradient(anca.x - 8, 0, cruz.x + 8, 0);
+      rim.addColorStop(0, 'rgba(166,239,226,0)'); rim.addColorStop(0.5, 'rgba(166,239,226,.55)'); rim.addColorStop(1, 'rgba(166,239,226,.15)');
+      ctx.strokeStyle = rim; ctx.lineWidth = 1.1; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(cadera.x - 13, cadera.y - 4); ctx.quadraticCurveTo(cadera.x - 12, cadera.y - 8, anca.x, anca.y); ctx.quadraticCurveTo(medio.x, medio.y, cruz.x, cruz.y); ctx.stroke();
 
       PATAS.filter((q) => q.cerca).forEach((q) => pata(q, q.tr ? cadera : hombro));
 
@@ -252,36 +300,68 @@
         x: hombro.x + 13 + (galope ? 4 * a : 0) - s.arco * 3,
         y: HOMBRO.y - 8 - quieto * 4 + (galope ? 3 * a : 0) + s.arco * 7 + yH * 0.3 + Math.sin(s.reloj * 0.9) * quieto * 0.8,
       };
-      ctx.fillStyle = NOCHE;
-      hueso({ x: hombro.x + 1, y: hombro.y - 4 - escap * 0.5 }, { x: cab.x - 3, y: cab.y + 1 }, 13, 10);
+      ctx.fillStyle = pielCerca;
+      hueso({ x: hombro.x + 1, y: hombro.y - 4 - escap * 0.5 }, { x: cab.x - 3, y: cab.y + 1 }, 13.5, 10.5);
+      mechones([{ x: cab.x - 2, y: cab.y + 8 }, { x: cab.x - 5, y: cab.y + 9 }, { x: hombro.x + 6, y: hombro.y + 1 }], 0.3, 1, 3, 14);   // gorguera del cuello
       cabeza(cab, galope, a);
       ctx.restore();
     }
 
     function cabeza(c, galope, a) {
       const atras = s.arco * 6 + (galope ? a * 3.5 : 0) + (s.oreja > 0 ? 2.5 * Math.sin((s.oreja / 0.25) * Math.PI) : 0);
-      ctx.fillStyle = LEJOS; ctx.beginPath(); ctx.moveTo(c.x - 1, c.y - 6); ctx.lineTo(c.x + 3 - atras * 0.7, c.y - 17 + atras * 0.8); ctx.lineTo(c.x + 6, c.y - 4); ctx.fill();
-      ctx.fillStyle = NOCHE;
-      ctx.beginPath(); ctx.arc(c.x, c.y, 8.2, 0, TAU); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(c.x + 7.2, c.y + 2.6, 5.2, 3.9, 0.12, 0, TAU); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(c.x - 7.5, c.y + 1); ctx.lineTo(c.x - 11, c.y + 5); ctx.lineTo(c.x - 5, c.y + 5); ctx.lineTo(c.x - 7.5, c.y + 8.5); ctx.lineTo(c.x - 1.5, c.y + 7); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(c.x - 6, c.y - 4.5); ctx.lineTo(c.x - 4.5 - atras, c.y - 18.5 + atras); ctx.lineTo(c.x + 1.6, c.y - 7); ctx.fill();
-      ctx.strokeStyle = MENTA; ctx.lineWidth = 0.9; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(c.x - 3.8, c.y - 7); ctx.lineTo(c.x - 4 - atras * 0.9, c.y - 14.5 + atras * 0.9); ctx.lineTo(c.x - 0.8, c.y - 8.2); ctx.stroke();
-      const cierre = s.parpadeo > 0 ? 0.12 : s.arco > 0.3 ? 0.6 : 1;
-      ctx.save(); ctx.translate(c.x + 3.6, c.y - 1.2); ctx.rotate(-0.36);
-      ctx.shadowColor = s.arco > 0.3 ? AMBAR : MENTA; ctx.shadowBlur = 6;
-      ctx.fillStyle = s.arco > 0.3 ? AMBAR : MENTA; ctx.beginPath(); ctx.ellipse(0, 0, 3.1, 1.8 * cierre, 0, 0, TAU); ctx.fill();
-      ctx.shadowBlur = 0; ctx.fillStyle = NOCHE; ctx.beginPath(); ctx.ellipse(0.5, 0, 0.65, 1.6 * cierre, 0, 0, TAU); ctx.fill();
+      const furia = s.arco > 0.3;
+      // oreja lejana
+      ctx.fillStyle = pielLejos; ctx.beginPath(); ctx.moveTo(c.x - 0.5, c.y - 6.5); ctx.quadraticCurveTo(c.x + 1, c.y - 13, c.x + 3.2 - atras * 0.7, c.y - 17.5 + atras * 0.8); ctx.quadraticCurveTo(c.x + 5.5, c.y - 10, c.x + 6.5, c.y - 4.5); ctx.fill();
+      // cráneo, hocico, mentón y mejilla con pelo (un solo contorno)
+      ctx.fillStyle = pielCerca; ctx.beginPath();
+      ctx.moveTo(c.x - 8.5, c.y + 2);
+      ctx.bezierCurveTo(c.x - 9.5, c.y - 7, c.x - 2, c.y - 10, c.x + 4.5, c.y - 7.4);             // nuca y frente
+      ctx.quadraticCurveTo(c.x + 8.5, c.y - 5.6, c.x + 11.2, c.y - 2.2);                            // puente de la nariz
+      ctx.quadraticCurveTo(c.x + 13.6, c.y - 0.4, c.x + 13.4, c.y + 1.6);                           // nariz
+      ctx.quadraticCurveTo(c.x + 13.2, c.y + 3.8, c.x + 11.6, c.y + 4.2);                           // labio
+      if (furia) { ctx.lineTo(c.x + 7.5, c.y + 5); ctx.lineTo(c.x + 10.5, c.y + 9.8); ctx.quadraticCurveTo(c.x + 7, c.y + 11, c.x + 3, c.y + 9.5); }   // mandíbula abierta
+      else { ctx.quadraticCurveTo(c.x + 10.4, c.y + 7.4, c.x + 6.4, c.y + 7.6); ctx.quadraticCurveTo(c.x + 3.6, c.y + 8.6, c.x + 1, c.y + 8.4); }
+      ctx.lineTo(c.x - 2.5, c.y + 10.8); ctx.lineTo(c.x - 4, c.y + 8.6); ctx.lineTo(c.x - 8.5, c.y + 11); ctx.lineTo(c.x - 8.2, c.y + 7.4);
+      ctx.lineTo(c.x - 12.5, c.y + 6.8); ctx.lineTo(c.x - 9.6, c.y + 4.4); ctx.lineTo(c.x - 13, c.y + 2.2); ctx.closePath(); ctx.fill();
+      // oreja cercana con interior
+      ctx.beginPath(); ctx.moveTo(c.x - 6.8, c.y - 4); ctx.quadraticCurveTo(c.x - 7.4, c.y - 12, c.x - 4.6 - atras, c.y - 19.5 + atras); ctx.quadraticCurveTo(c.x + 0.5, c.y - 13, c.x + 2.2, c.y - 7.2); ctx.fill();
+      ctx.fillStyle = '#2C4256'; ctx.beginPath(); ctx.moveTo(c.x - 5, c.y - 6.5); ctx.quadraticCurveTo(c.x - 5.4, c.y - 11.5, c.x - 4.4 - atras * 0.85, c.y - 16.5 + atras * 0.85); ctx.quadraticCurveTo(c.x - 1, c.y - 11.5, c.x + 0.4, c.y - 8); ctx.fill();
+      ctx.strokeStyle = 'rgba(166,239,226,.55)'; ctx.lineWidth = 0.45;
+      [[-3.8, -8], [-2.6, -8.4], [-1.4, -8.6]].forEach(([x, y], i) => { ctx.beginPath(); ctx.moveTo(c.x + x, c.y + y); ctx.lineTo(c.x + x - 1.6 - atras * 0.4 + i * 0.6, c.y + y - 4.2 + atras * 0.3); ctx.stroke(); });
+      ctx.strokeStyle = MENTA; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(c.x - 4.6 - atras, c.y - 19.5 + atras); ctx.quadraticCurveTo(c.x + 0.5, c.y - 13, c.x + 2.2, c.y - 7.2); ctx.stroke();
+      // luz de borde en la frente
+      ctx.strokeStyle = 'rgba(166,239,226,.45)'; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.moveTo(c.x - 7.5, c.y - 3); ctx.bezierCurveTo(c.x - 6.5, c.y - 8, c.x - 1, c.y - 9.6, c.x + 4.5, c.y - 7.4); ctx.stroke();
+      // ojo: iris con degradado, pupila vertical, párpado de ceño fruncido
+      const cierre = s.parpadeo > 0 ? 0.1 : furia ? 0.62 : 1;
+      ctx.save(); ctx.translate(c.x + 4.4, c.y - 1.8); ctx.rotate(-0.32);
+      ctx.fillStyle = '#04090E'; ctx.beginPath(); ctx.ellipse(0, 0, 3.7, 2.4 * cierre + 0.3, 0, 0, TAU); ctx.fill();
+      const iris = ctx.createRadialGradient(-0.4, -0.4, 0.2, 0, 0, 3.4);
+      if (furia) { iris.addColorStop(0, '#FFE2A8'); iris.addColorStop(0.55, AMBAR); iris.addColorStop(1, '#9A5A00'); }
+      else { iris.addColorStop(0, '#D9FFF6'); iris.addColorStop(0.5, MENTA); iris.addColorStop(1, '#1F7A6C'); }
+      ctx.shadowColor = furia ? AMBAR : MENTA; ctx.shadowBlur = 5;
+      ctx.fillStyle = iris; ctx.beginPath(); ctx.ellipse(0, 0, 3.2, 2 * cierre, 0, 0, TAU); ctx.fill();
+      ctx.shadowBlur = 0; ctx.fillStyle = '#03070B'; ctx.beginPath(); ctx.ellipse(0.6, 0, furia ? 0.4 : 0.7, 1.85 * cierre, 0, 0, TAU); ctx.fill();
+      if (cierre > 0.3) { ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.beginPath(); ctx.arc(1.3, -0.7 * cierre, 0.45, 0, TAU); ctx.fill(); }
       ctx.restore();
-      ctx.strokeStyle = MENTA; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(c.x - 0.5, c.y - 4.6); ctx.lineTo(c.x + 6.8, c.y - 2.7); ctx.stroke();
-      ctx.fillStyle = MENTA; ctx.beginPath(); ctx.moveTo(c.x + 11.6, c.y + 0.6); ctx.lineTo(c.x + 12.9, c.y + 2); ctx.lineTo(c.x + 11.2, c.y + 2.3); ctx.fill();
-      if (s.arco > 0.3) {
-        ctx.fillStyle = '#3A0E0E'; ctx.beginPath(); ctx.moveTo(c.x + 5, c.y + 4.2); ctx.lineTo(c.x + 12.4, c.y + 3.8); ctx.lineTo(c.x + 8.6, c.y + 8.2); ctx.fill();
-        ctx.fillStyle = CLARO; ctx.beginPath(); ctx.moveTo(c.x + 10.2, c.y + 3.9); ctx.lineTo(c.x + 10.9, c.y + 6.5); ctx.lineTo(c.x + 11.6, c.y + 3.8); ctx.fill();
+      ctx.strokeStyle = '#04090E'; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(c.x + 0.2, c.y - 4.2 + (furia ? 0.6 : 0)); ctx.quadraticCurveTo(c.x + 4, c.y - 4.8, c.x + 8, c.y - 2.6); ctx.stroke();
+      ctx.strokeStyle = MENTA; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(c.x - 0.6, c.y - 5.2); ctx.lineTo(c.x + 6.6, c.y - 3.6); ctx.stroke();
+      // nariz y boca
+      ctx.fillStyle = '#1D3A46'; ctx.beginPath(); ctx.moveTo(c.x + 11.6, c.y - 0.2); ctx.quadraticCurveTo(c.x + 13.8, c.y - 0.2, c.x + 13.5, c.y + 1.4); ctx.lineTo(c.x + 12.2, c.y + 1.8); ctx.fill();
+      ctx.fillStyle = 'rgba(166,239,226,.6)'; ctx.beginPath(); ctx.arc(c.x + 12.4, c.y + 0.2, 0.35, 0, TAU); ctx.fill();
+      if (furia) {
+        ctx.fillStyle = '#3B0B12'; ctx.beginPath(); ctx.moveTo(c.x + 11.3, c.y + 4.2); ctx.lineTo(c.x + 7.6, c.y + 5); ctx.lineTo(c.x + 10.1, c.y + 9.2); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#B8566A'; ctx.beginPath(); ctx.ellipse(c.x + 9.4, c.y + 7.6, 1.6, 0.8, 0.6, 0, TAU); ctx.fill();
+        ctx.fillStyle = CLARO; ctx.beginPath(); ctx.moveTo(c.x + 10.4, c.y + 4.3); ctx.lineTo(c.x + 10.9, c.y + 6.9); ctx.lineTo(c.x + 11.4, c.y + 4.2); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(c.x + 9.1, c.y + 9.2); ctx.lineTo(c.x + 9.4, c.y + 7.2); ctx.lineTo(c.x + 9.9, c.y + 9.3); ctx.fill();
+      } else {
+        ctx.strokeStyle = '#04090E'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(c.x + 12.6, c.y + 1.8); ctx.quadraticCurveTo(c.x + 12.4, c.y + 3.4, c.x + 11, c.y + 4); ctx.quadraticCurveTo(c.x + 10, c.y + 4.4, c.x + 9.2, c.y + 4); ctx.stroke();
       }
-      ctx.strokeStyle = 'rgba(166,239,226,.5)'; ctx.lineWidth = 0.6;
-      [[-1, 1.8], [0, 3.1], [1, 4.3]].forEach(([d, y]) => { ctx.beginPath(); ctx.moveTo(c.x + 9.5, c.y + y); ctx.lineTo(c.x + 21, c.y + y + d * 2.6 - s.arco * 2); ctx.stroke(); });
+      // almohadillas y bigotes
+      ctx.fillStyle = 'rgba(166,239,226,.35)'; [[10.2, 2.2], [9.4, 3.3], [10.6, 3.5]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(c.x + x, c.y + y, 0.3, 0, TAU); ctx.fill(); });
+      ctx.strokeStyle = 'rgba(200,245,236,.55)'; ctx.lineWidth = 0.45;
+      [[-1, 2.2], [0, 3.1], [1, 4]].forEach(([d, y]) => { ctx.beginPath(); ctx.moveTo(c.x + 10, c.y + y); ctx.quadraticCurveTo(c.x + 16, c.y + y + d * 1.2 - s.arco, c.x + 22, c.y + y + d * 3 - s.arco * 2.5); ctx.stroke(); });
+      ctx.beginPath(); ctx.moveTo(c.x + 5.5, c.y - 5); ctx.quadraticCurveTo(c.x + 8, c.y - 9, c.x + 11, c.y - 10.5); ctx.stroke();       // bigote de la ceja
     }
 
     /* ---------- tocar al gato ---------- */
