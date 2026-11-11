@@ -67,7 +67,7 @@
       footer.innerHTML = `
       <div class="wrap">
         <div style="display:flex;flex-direction:column;gap:10px;max-width:360px">
-          <img src="assets/img/marca/gatoarisco-wordmark-menta.png" alt="Gatoarisco" width="104" height="28">
+          <img src="assets/img/marca/gatoarisco-wordmark-menta.png" alt="Gatoarisco" width="125" height="34">
           <span>Estilo con garra. Pines Lostpin, stickers, parches, ropa y accesorios.</span>
           <small>Hecho en Colombia · envíos a todo el país</small>
         </div>

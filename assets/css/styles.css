@@ -333,7 +333,7 @@ main { flex: 1; padding-bottom: 96px; }
 .site-footer { background: var(--night); color: #B8CCDC; margin-top: 20px; }
 .site-footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px; padding: 40px 20px 120px; }
 @media (min-width: 900px) { .site-footer .wrap { padding-bottom: 40px; } }
-.site-footer img { height: 28px; width: auto; }
+.site-footer img { height: 34px; width: auto; max-width: none; align-self: flex-start; object-fit: contain; }
 .site-footer a { color: #DDEFF0; }
 .site-footer nav { display: flex; flex-wrap: wrap; gap: 10px 24px; font-size: 14px; }
 .site-footer small { font-family: var(--font-mono); font-size: 11px; }
