@@ -14,7 +14,7 @@
   const MARCHAS = {
     // L = avance del cuerpo por ciclo; apoyo = fracción del ciclo con la pata en el suelo
     paso: { L: 30, apoyo: 0.64, alzaD: 6, alzaT: 4.5, vel: 46, flex: 0.05, fase: { ti: 0, di: 0.25, td: 0.5, dd: 0.75 } },
-    galope: { L: 78, apoyo: 0.3, alzaD: 12, alzaT: 10, vel: 330, flex: 1, fase: { ti: 0, td: 0.07, dd: 0.47, di: 0.55 } },
+    galope: { L: 86, apoyo: 0.32, alzaD: 9, alzaT: 8, vel: 300, flex: 1, fase: { ti: 0, td: 0.08, dd: 0.48, di: 0.56 } },
   };
   const PATAS = [
     { k: 'td', tr: true, cerca: false }, { k: 'dd', tr: false, cerca: false },
@@ -105,7 +105,12 @@
           if (p.estado === 'aire') {
             const u = (f - M.apoyo) / (1 - M.apoyo);
             const falta = (1 - u) * (1 - M.apoyo) * Lc;
-            p.hasta = s.d + falta + NEUTRO[k] + (M.apoyo * Lc) / 2;
+            let extra = 0;
+            if (s.marcha === 'galope') {
+              const flexL = M.flex * s.amp * Math.cos(TAU * ((s.phi + (1 - f)) % 1 - 0.95));
+              extra = tr ? 9 * flexL + 3 : -4 * flexL + 3;
+            }
+            p.hasta = s.d + falta + NEUTRO[k] + (M.apoyo * Lc) / 2 + extra;
             p.u = u; p.x = lerp(p.desde, p.hasta, suave(u)); p.y = -alza * Math.sin(Math.PI * u);
           } else { p.u = 0; p.x = p.px; p.y = 0; }
         } else if (p.estado === 'aire') {
@@ -211,6 +216,12 @@
         ctx.quadraticCurveTo(rodilla.x + 6, rodilla.y - 5, raiz.x + 8.5, raiz.y - 3);                // rodilla al ijar
         ctx.fill();
         ctx.beginPath(); ctx.arc(fin.x, fin.y, 2.1, 0, TAU); ctx.fill();
+        if (cerca) {   // borde que separa el muslo del cuerpo para que se lea la pierna
+          ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = 0.8; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(talonFrente.x, talonFrente.y); ctx.quadraticCurveTo(mid.x + ft.x * 2.4, mid.y + ft.y * 2.4, rodillaFrente.x, rodillaFrente.y); ctx.quadraticCurveTo(rodilla.x + 6, rodilla.y - 5, raiz.x + 8.5, raiz.y - 3); ctx.stroke();
+          ctx.strokeStyle = 'rgba(166,239,226,.18)'; ctx.lineWidth = 0.7;
+          ctx.beginPath(); ctx.moveTo(isq.x, isq.y); ctx.quadraticCurveTo(isq.x + 0.5, (isq.y + pant.y) / 2 + 2, pant.x, pant.y); ctx.stroke();
+        }
         hueso(fin, pie, 3.9, 3.3);
         // "pantalones": pelo largo detrás del muslo
         if (cerca) mechones([0.3, 0.5, 0.7].map((t) => bez({ x: raiz.x - 9.5, y: raiz.y + 1 }, { x: raiz.x - 9, y: raiz.y + 9 }, { x: rodilla.x - 3.2, y: rodilla.y + 2.4 }, t)), -0.8, 0.6, 2, 3, 0.9);
@@ -232,16 +243,17 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
       if (s.modo === 'fuera') return;
       const M = MARCHAS[s.marcha], a = s.amp, galope = s.marcha === 'galope', c = TAU * s.phi;
-      const flex = M.flex * a * Math.cos(c - TAU * 0.85);
+      const flex = M.flex * a * Math.cos(c - TAU * 0.95);
       let yC = 0, yH = 0;
       if (galope) {
-        const vuelo = -4.2 * a * Math.pow(Math.max(0, Math.sin(c - 1.0)), 2);
-        yC = vuelo + 3 * a * Math.sin(c); yH = vuelo - 3 * a * Math.sin(c);
+        const vuelo = -1.6 * a * Math.pow(Math.max(0, Math.cos(c - TAU * 0.9)), 3);   // suspensión recogida
+        yC = vuelo + 1.6 * a * Math.cos(c - TAU * 0.14);                              // cadera baja cuando cargan las traseras
+        yH = vuelo + 1.6 * a * Math.cos(c - TAU * 0.56);                              // hombros bajos cuando cargan las manos
       } else {
         yC = 0.9 * a * Math.cos(2 * (c - TAU * 0.1)); yH = 0.9 * a * Math.cos(2 * (c - TAU * 0.35));
       }
       const respira = (1 - a) * Math.sin(s.reloj * 2.2) * 0.5;
-      const cadera = { x: CADERA.x + flex * 11, y: CADERA.y + yC - s.arco * 7 + respira * 0.4 };
+      const cadera = { x: CADERA.x + flex * 9, y: CADERA.y + yC - s.arco * 7 + respira * 0.4 };
       const hombro = { x: HOMBRO.x - flex * 6, y: HOMBRO.y + yH - s.arco * 4 + respira * 0.4 };
       const pd = pies.di;
       const escap = pd && pd.estado === 'apoyo' ? 2.4 * clamp(1 - Math.abs(pd.x - s.d - hombro.x) / 14, 0, 1) * Math.max(a, 0.4) : 0;
@@ -259,7 +271,7 @@
       // cola con pelo
       const base = { x: cadera.x - 9, y: cadera.y - 8 };
       let ang, curva;
-      if (galope) { ang = Math.PI + 0.12 + 0.16 * Math.sin(c + 1.2) * a; curva = 0.012; }
+      if (galope) { ang = Math.PI + 0.06 - 0.28 * flex; curva = 0.01 + 0.012 * flex; }
       else if (s.modo === 'quieto') { ang = Math.PI - 0.55; curva = 0.115; }
       else { ang = Math.PI - 0.38 + 0.05 * Math.sin(c * 2); curva = 0.085; }
       ang = lerp(ang, Math.PI + 1.45, s.arco); curva = lerp(curva, -0.02, s.arco);
@@ -285,7 +297,7 @@
       }
 
       // torso
-      const lomo = 2 + s.arco * 14 + Math.max(0, flex) * 7 - Math.max(0, -flex) * 2.5;
+      const lomo = 2 + s.arco * 14 + Math.max(0, flex) * 3.5 - Math.max(0, -flex) * 2;
       const anca = { x: cadera.x - 3, y: cadera.y - 10.5 }, cruz = { x: hombro.x - 3, y: hombro.y - 10 - escap };
       const medio = { x: (anca.x + cruz.x) / 2, y: (anca.y + cruz.y) / 2 - lomo };
       const pecho = { x: hombro.x - 1, y: hombro.y + 13 }, ijada = { x: cadera.x + 5, y: cadera.y + 8 };
