@@ -33,11 +33,7 @@
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 body {
   margin: 0;
-  background-color: var(--bg);
-  background-image:
-    linear-gradient(rgba(11, 26, 42, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(11, 26, 42, 0.035) 1px, transparent 1px);
-  background-size: 36px 36px;
+  background-color: #EDF2F5;
   color: var(--text);
   font-family: var(--font-body);
   font-size: 16px;
@@ -47,6 +43,30 @@ body {
   flex-direction: column;
 }
 img, svg { max-width: 100%; display: block; }
+
+/* Fondo en capas: resplandor menta, cuadrícula que se desvanece, huellas y rasguños tenues, grano fino */
+body::before, body::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+body::before {
+  background:
+    radial-gradient(1100px 620px at 88% -12%, rgba(115, 216, 199, 0.30), transparent 62%),
+    radial-gradient(900px 520px at -8% 8%, rgba(166, 239, 226, 0.22), transparent 60%),
+    radial-gradient(700px 420px at 55% 112%, rgba(255, 181, 71, 0.07), transparent 60%),
+    radial-gradient(1400px 900px at 50% 130%, rgba(11, 26, 42, 0.10), transparent 70%),
+    linear-gradient(180deg, #F5F9FA 0%, #EDF2F5 55%, #E6EDF1 100%);
+}
+body::after {
+  background-image:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22220%22%20height%3D%22220%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%22.85%22%20numOctaves%3D%222%22%20stitchTiles%3D%22stitch%22/%3E%3CfeColorMatrix%20values%3D%220%200%200%200%200.04%20%200%200%200%200%200.1%20%200%200%200%200%200.16%20%200%200%200%20.10%200%22/%3E%3C/filter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url%28%23n%29%22/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22560%22%20height%3D%22560%22%20viewBox%3D%220%200%20560%20560%22%3E%3Cg%20fill%3D%22%230B1A2A%22%20fill-opacity%3D%220.06%22%3E%3Cg%20transform%3D%22translate%2870%2090%29%20rotate%2818%29%20scale%281%29%22%3E%3Cellipse%20cx%3D%220%22%20cy%3D%226%22%20rx%3D%227.5%22%20ry%3D%226.2%22/%3E%3Cellipse%20cx%3D%22-8.5%22%20cy%3D%22-3.5%22%20rx%3D%222.9%22%20ry%3D%223.625%22/%3E%3Cellipse%20cx%3D%22-3%22%20cy%3D%22-8.5%22%20rx%3D%223.1%22%20ry%3D%223.875%22/%3E%3Cellipse%20cx%3D%223.4%22%20cy%3D%22-8.6%22%20rx%3D%223.1%22%20ry%3D%223.875%22/%3E%3Cellipse%20cx%3D%228.8%22%20cy%3D%22-3.4%22%20rx%3D%222.9%22%20ry%3D%223.625%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate%28118%20140%29%20rotate%2826%29%20scale%280.95%29%22%3E%3Cellipse%20cx%3D%220%22%20cy%3D%226%22%20rx%3D%227.5%22%20ry%3D%226.2%22/%3E%3Cellipse%20cx%3D%22-8.5%22%20cy%3D%22-3.5%22%20rx%3D%222.9%22%20ry%3D%223.625%22/%3E%3Cellipse%20cx%3D%22-3%22%20cy%3D%22-8.5%22%20rx%3D%223.1%22%20ry%3D%223.875%22/%3E%3Cellipse%20cx%3D%223.4%22%20cy%3D%22-8.6%22%20rx%3D%223.1%22%20ry%3D%223.875%22/%3E%3Cellipse%20cx%3D%228.8%22%20cy%3D%22-3.4%22%20rx%3D%222.9%22%20ry%3D%223.625%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate%2884%20205%29%20rotate%2814%29%20scale%280.9%29%22%3E%3Cellipse%20cx%3D%220%22%20cy%3D%226%22%20rx%3D%227.5%22%20ry%3D%226.2%22/%3E%3Cellipse%20cx%3D%22-8.5%22%20cy%3D%22-3.5%22%20rx%3D%222.9%22%20ry%3D%223.625%22/%3E%3Cellipse%20cx%3D%22-3%22%20cy%3D%22-8.5%22%20rx%3D%223.1%22%20ry%3D%223.875%22/%3E%3Cellipse%20cx%3D%223.4%22%20cy%3D%22-8.6%22%20rx%3D%223.1%22%20ry%3D%223.875%22/%3E%3Cellipse%20cx%3D%228.8%22%20cy%3D%22-3.4%22%20rx%3D%222.9%22%20ry%3D%223.625%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate%28400%20420%29%20rotate%28-160%29%20scale%280.9%29%22%3E%3Cellipse%20cx%3D%220%22%20cy%3D%226%22%20rx%3D%227.5%22%20ry%3D%226.2%22/%3E%3Cellipse%20cx%3D%22-8.5%22%20cy%3D%22-3.5%22%20rx%3D%222.9%22%20ry%3D%223.625%22/%3E%3Cellipse%20cx%3D%22-3%22%20cy%3D%22-8.5%22%20rx%3D%223.1%22%20ry%3D%223.875%22/%3E%3Cellipse%20cx%3D%223.4%22%20cy%3D%22-8.6%22%20rx%3D%223.1%22%20ry%3D%223.875%22/%3E%3Cellipse%20cx%3D%228.8%22%20cy%3D%22-3.4%22%20rx%3D%222.9%22%20ry%3D%223.625%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate%28448%20368%29%20rotate%28-150%29%20scale%280.85%29%22%3E%3Cellipse%20cx%3D%220%22%20cy%3D%226%22%20rx%3D%227.5%22%20ry%3D%226.2%22/%3E%3Cellipse%20cx%3D%22-8.5%22%20cy%3D%22-3.5%22%20rx%3D%222.9%22%20ry%3D%223.625%22/%3E%3Cellipse%20cx%3D%22-3%22%20cy%3D%22-8.5%22%20rx%3D%223.1%22%20ry%3D%223.875%22/%3E%3Cellipse%20cx%3D%223.4%22%20cy%3D%22-8.6%22%20rx%3D%223.1%22%20ry%3D%223.875%22/%3E%3Cellipse%20cx%3D%228.8%22%20cy%3D%22-3.4%22%20rx%3D%222.9%22%20ry%3D%223.625%22/%3E%3C/g%3E%3C/g%3E%3Cg%20stroke%3D%22%230B1A2A%22%20stroke-opacity%3D%220.065%22%3E%3Cg%20transform%3D%22translate%28330%2060%29%20rotate%2824%29%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M0%200%20Q6%2035.0%202%2070%22%20stroke-width%3D%223.2%22/%3E%3Cpath%20d%3D%22M11%200%20Q17%2035.0%2013%2064%22%20stroke-width%3D%222.8000000000000003%22/%3E%3Cpath%20d%3D%22M22%200%20Q28%2035.0%2024%2058%22%20stroke-width%3D%222.4000000000000004%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate%28150%20350%29%20rotate%28-14%29%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M0%200%20Q6%2030.0%202%2060%22%20stroke-width%3D%223.2%22/%3E%3Cpath%20d%3D%22M11%200%20Q17%2030.0%2013%2054%22%20stroke-width%3D%222.8000000000000003%22/%3E%3Cpath%20d%3D%22M22%200%20Q28%2030.0%2024%2048%22%20stroke-width%3D%222.4000000000000004%22/%3E%3C/g%3E%3C/g%3E%3Cg%20stroke%3D%22%231C7A6C%22%20stroke-opacity%3D%220.07%22%3E%3Cg%20transform%3D%22translate%28470%20170%29%20rotate%2830%29%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M0%200%20Q6%2023.0%202%2046%22%20stroke-width%3D%223.2%22/%3E%3Cpath%20d%3D%22M11%200%20Q17%2023.0%2013%2040%22%20stroke-width%3D%222.8000000000000003%22/%3E%3Cpath%20d%3D%22M22%200%20Q28%2023.0%2024%2034%22%20stroke-width%3D%222.4000000000000004%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(11, 26, 42, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(11, 26, 42, 0.05) 1px, transparent 1px);
+  background-size: 220px 220px, 560px 560px, 36px 36px, 36px 36px;
+  background-position: 0 0, 40px 120px, -1px -1px, -1px -1px;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.75) 45%, rgba(0, 0, 0, 0.45) 100%);
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.75) 45%, rgba(0, 0, 0, 0.45) 100%);
+  opacity: 0.9;
+}
+.panel-body::before, .panel-body::after { display: none; }
 a { color: var(--mint-text); }
 a:hover { color: var(--night); }
 button, input, select, textarea { font: inherit; color: inherit; }
