@@ -33,6 +33,7 @@
     star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
     heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
     bag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
+    user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.6 4-5.4 7.5-5.4s6.3 1.8 7.5 5.4"/></svg>',
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" width="17" height="17"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>',
   };
 
@@ -62,6 +63,7 @@
             ${I.search}<label class="sr-only" for="q-top">Buscar en la tienda</label>
             <input id="q-top" name="q" type="search" placeholder="Buscar en la tienda">
           </form>
+          <a class="icon-btn" href="panel.html" aria-label="Acceso administración" title="Acceso administración">${I.user}</a>
           <a class="icon-btn" href="carrito.html" aria-label="Carrito">${I.bag}<span class="badge" data-cart-count></span></a>
         </div>
       </div>`;
@@ -89,6 +91,7 @@
           ${CFG.fundacion ? '<a href="impacto.html">Fundación e impacto</a>' : ''}
           <a href="https://wa.me/${CFG.whatsapp}" rel="noopener">WhatsApp</a>
           <a href="mailto:${CFG.correo}">${CFG.correo}</a>
+          <a href="panel.html">Acceso</a>
         </nav>
       </div>`;
     }
