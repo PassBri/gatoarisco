@@ -98,9 +98,14 @@
     count() { return this.items().reduce((a, i) => a + i.qty, 0); },
     clear() { this.save([]); },
   };
+  let ultimoConteo = null;
   function updateBadges() {
     const n = Cart.count();
-    $$('[data-cart-count]').forEach((b) => { b.textContent = n; b.classList.toggle('on', n > 0); });
+    $$('[data-cart-count]').forEach((b) => {
+      b.textContent = n; b.classList.toggle('on', n > 0);
+      if (ultimoConteo !== null && n > ultimoConteo) { b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); }
+    });
+    ultimoConteo = n;
   }
   let toastTimer;
   function toast(msg) {
@@ -124,6 +129,11 @@
   }
   const catName = (id) => (DATA.categorias.find((c) => c.id === id) || {}).nombre || id;
 
+  const CLAW = '<svg class="claw" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path pathLength="100" d="M22 8 L44 92"/><path pathLength="100" d="M42 4 L64 88"/><path pathLength="100" d="M62 8 L84 92"/></svg>';
+  const garras = (n) => (n ? `<span class="arisquez" role="img" aria-label="Arisquez ${n} de 5">${[1, 2, 3, 4, 5].map((i) => `<i${i <= n ? ' class="on"' : ''}></i>`).join('')}</span>` : '');
+  const AL_AGREGAR = ['El gato lo aprueba. Por ahora.', 'Buena presa. Ya está en tu carrito.', 'Zarpazo certero: agregado.', 'Atrapado. No lo sueltes.'];
+  const azar = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
   function card(p) {
     const out = p.stock <= 0;
     let tag = '';
@@ -132,10 +142,10 @@
     else if (p.preventa) tag = '<span class="tag tag-mint">Preventa</span>';
     else if (p.nuevo) tag = '<span class="tag tag-mint">Nuevo</span>';
     return `<a class="panel brackets card${out ? ' is-out' : ''}" href="producto.html?id=${encodeURIComponent(p.id)}">
-      <div class="media">${tag}<img src="${img(p.id)}" alt="${esc(p.nombre)}" loading="lazy" width="160" height="160"></div>
+      <div class="media">${tag}${CLAW}<img src="${img(p.id)}" alt="${esc(p.nombre)}" loading="lazy" width="160" height="160"></div>
       <span class="cat-label">${esc(catName(p.categoria))}${p.linea ? ' · ' + esc(p.linea) : ''}</span>
       <h3>${esc(p.nombre)}</h3>
-      <div class="meta"><span class="price">${money(p.precio)}${p.precioAntes ? `<s>${money(p.precioAntes)}</s>` : ''}</span></div>
+      <div class="meta"><span class="price">${money(p.precio)}${p.precioAntes ? `<s>${money(p.precioAntes)}</s>` : ''}</span>${garras(p.arisquez)}</div>
     </a>`;
   }
 
@@ -184,7 +194,7 @@
       if (sort.value === 'menor') list.sort((a, b) => a.precio - b.precio);
       else if (sort.value === 'mayor') list.sort((a, b) => b.precio - a.precio);
       else list.sort((a, b) => (b.stock > 0) - (a.stock > 0) || (b.destacado ? 1 : 0) - (a.destacado ? 1 : 0));
-      grid.innerHTML = list.length ? list.map(card).join('') : `<div class="empty" style="grid-column:1/-1"><img src="assets/img/marca/gatoarisco-icono-noche.png" alt=""><p>No encontramos productos con esa búsqueda.</p></div>`;
+      grid.innerHTML = list.length ? list.map(card).join('') : `<div class="empty" style="grid-column:1/-1">${window.gatoSVG ? gatoSVG('grande') : ''}<p>El gato buscó por todas partes y nada. Prueba con otra palabra.</p></div>`;
       count.textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
       const u = new URL(location.href);
       cat === 'todo' ? u.searchParams.delete('cat') : u.searchParams.set('cat', cat);
@@ -204,7 +214,7 @@
     const D = await data();
     const p = D.productos.find((x) => x.id === params.get('id'));
     const root = $('#producto');
-    if (!p) { root.innerHTML = '<div class="empty"><p>Este producto se perdió. <a href="tienda.html">Volver a la tienda</a></p></div>'; return; }
+    if (!p) { root.innerHTML = `<div class="empty">${window.gatoSVG ? gatoSVG('grande') : ''}<p>Este producto se escondió debajo de la cama.</p><a class="btn btn-primary" href="tienda.html">Volver a la tienda</a></div>`; return; }
     document.title = p.nombre + ' · Gatoarisco';
     let variante = p.variantes ? p.variantes.opciones[0] : '';
     let qty = 1;
@@ -219,7 +229,9 @@
         <p class="eyebrow"><a href="tienda.html?cat=${p.categoria}">${esc(catName(p.categoria))}</a>${p.linea ? ' · ' + esc(p.linea) : ''}</p>
         <h1 class="h-display" style="font-size:clamp(34px,5vw,52px);font-weight:300">${esc(p.nombre)}</h1>
         <div class="price" style="font-size:26px">${money(p.precio)}${p.precioAntes ? `<s style="font-size:14px">${money(p.precioAntes)}</s>` : ''}</div>
+        ${p.humor ? `<blockquote class="humor"><span>Lo que dice el gato</span>«${esc(p.humor)}»</blockquote>` : ''}
         <p style="margin:0;color:var(--text-2)">${esc(p.descripcion)}</p>
+        ${p.arisquez ? `<div class="arisquez-box"><small>Nivel de arisquez</small>${garras(p.arisquez)}<b>${p.arisquez}/5</b><em>${['', 'Casi dócil', 'Tímido', 'Con carácter', 'Muy arisco', 'Indomable'][p.arisquez]}</em></div>` : ''}
         ${p.limitado ? `<span class="tag tag-amber" style="align-self:flex-start">${esc(p.limitado)}</span>` : ''}
         <div class="specs">${Object.entries(p.atributos || {}).map(([k, v]) => `<div class="spec"><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join('')}</div>
         ${p.variantes ? `<div><p class="eyebrow" id="var-label" style="margin-bottom:8px">${esc(p.variantes.nombre)}</p>
@@ -241,7 +253,7 @@
       qty = Math.max(1, Math.min(Math.max(1, p.stock), qty + Number(b.dataset.q))); $('#qty').textContent = qty;
     }));
     const add = $('#add');
-    if (add) add.addEventListener('click', () => { Cart.add(p.id, variante, qty); toast(`Agregado: ${p.nombre}${variante ? ' · ' + variante : ''}`); });
+    if (add) add.addEventListener('click', () => { Cart.add(p.id, variante, qty); toast(azar(AL_AGREGAR)); });
     const rel = $('#relacionados');
     if (rel) rel.innerHTML = D.productos.filter((x) => x.categoria === p.categoria && x.id !== p.id).slice(0, 4).map(card).join('');
   }
@@ -264,7 +276,7 @@
     function render() {
       const t = totals();
       if (!t.ls.length) {
-        list.innerHTML = `<div class="empty"><img src="assets/img/marca/gatoarisco-icono-noche.png" alt=""><p>Tu carrito está vacío.</p><a class="btn btn-primary" href="tienda.html">Ir a la tienda</a></div>`;
+        list.innerHTML = `<div class="empty">${window.gatoSVG ? gatoSVG('grande') : ''}<p>Tu carrito está más vacío que el plato del gato a las 5 a. m.</p><a class="btn btn-primary" href="tienda.html">Ir de cacería</a></div>`;
         sum.hidden = true; return;
       }
       sum.hidden = false;
@@ -310,7 +322,7 @@
         `Pago preferido: ${f.get('pago')}`,
       ].filter((l, idx, arr) => l !== '' || arr[idx - 1] !== '').join('\n');
       window.open(`https://wa.me/${CFG.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
-      toast('Abrimos WhatsApp con tu pedido');
+      toast('Pedido lanzado. El gato vigila que llegue.');
     });
     render();
   }
@@ -330,11 +342,13 @@
 
   /* ---------- arranque ---------- */
   chrome();
+  if (window.gatoMontar) gatoMontar();
+  const g404 = $('#gato-404'); if (g404 && window.gatoSVG) g404.innerHTML = gatoSVG('grande');
   $$('[data-wa]').forEach((a) => { a.href = `https://wa.me/${CFG.whatsapp}?text=${encodeURIComponent(a.dataset.wa)}`; });
   updateBadges();
   countdown();
   const run = { inicio: home, tienda, producto, carrito }[page];
-  if (run) run().catch(() => { const m = $('main'); if (m) m.insertAdjacentHTML('afterbegin', '<p class="wrap alert alert-amber" style="margin-top:20px">No pudimos cargar los productos. Recarga la página.</p>'); });
+  if (run) run().then(() => window.gatoMirar && gatoMirar()).catch(() => { const m = $('main'); if (m) m.insertAdjacentHTML('afterbegin', '<p class="wrap alert alert-amber" style="margin-top:20px">No pudimos cargar los productos. Recarga la página.</p>'); });
   formToWhatsApp('#form-embajador', 'Hola, quiero ser embajador de Gatoarisco.');
   formToWhatsApp('#form-vendedor', 'Hola, quiero vender con la Fundación Gatoarisco.');
 })();

@@ -218,7 +218,7 @@ main { flex: 1; padding-bottom: 96px; }
 @media (min-width: 900px) { .drop { grid-template-columns: 1fr auto auto; padding: 30px 34px; } }
 
 /* ---------- secciones ---------- */
-.section { padding: 28px 0 44px; }
+.section { padding-block: 28px 44px; }
 .section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 8px; margin-bottom: 20px; }
 
 /* categorías */
@@ -242,14 +242,14 @@ main { flex: 1; padding-bottom: 96px; }
 .card .media img { width: 66%; height: auto; filter: drop-shadow(0 10px 10px rgba(11, 26, 42, 0.22)); position: relative; }
 .card .media .tag { position: absolute; left: 0; top: 0; z-index: 1; }
 .card h3 { font-family: var(--font-display); font-weight: 500; font-size: 15px; letter-spacing: 0.04em; margin: 0; }
-.card .meta { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.card .meta { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 6px; }
 .price { font-family: var(--font-mono); font-size: 14px; }
 .price s { color: var(--muted); font-size: 11px; margin-left: 6px; }
 .card .cat-label { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
 .is-out .media img { opacity: .45; filter: grayscale(.6); }
 
 /* beneficios */
-.benefits { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.benefits { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 .benefit { display: flex; gap: 14px; padding: 24px 18px; }
 .benefit svg { width: 28px; height: 28px; flex: none; color: var(--mint-text); }
 .benefit h3 { font-family: var(--font-display); font-weight: 500; font-size: 15px; letter-spacing: 0.12em; margin: 0; text-transform: uppercase; }
@@ -276,7 +276,7 @@ main { flex: 1; padding-bottom: 96px; }
 .panel-night.band p { color: #B8CCDC; }
 
 /* ---------- ficha de producto ---------- */
-.product { display: grid; gap: 28px; padding: 24px 0 40px; }
+.product { display: grid; gap: 28px; padding-block: 24px 40px; }
 @media (min-width: 900px) { .product { grid-template-columns: 1.1fr 1fr; align-items: start; padding-top: 40px; } }
 .viewer { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; background: radial-gradient(closest-side, #fff, rgba(255, 255, 255, 0.45)); }
 .viewer .ring { position: absolute; border-radius: 50%; border: 1px solid rgba(115, 216, 199, 0.35); }
@@ -301,7 +301,7 @@ main { flex: 1; padding-bottom: 96px; }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; flex: none; }
 
 /* ---------- carrito y formularios ---------- */
-.cart-layout { display: grid; gap: 24px; padding: 24px 0 40px; }
+.cart-layout { display: grid; gap: 24px; padding-block: 24px 40px; }
 @media (min-width: 900px) { .cart-layout { grid-template-columns: 1.4fr 1fr; align-items: start; } .cart-summary { position: sticky; top: calc(var(--header-h) + 20px); } }
 .cart-item { display: grid; grid-template-columns: 72px 1fr auto; gap: 14px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line-soft); }
 .cart-item img { width: 72px; height: 72px; padding: 8px; border-radius: 14px; background: #fff; border: 1px solid var(--line); }
@@ -326,7 +326,7 @@ main { flex: 1; padding-bottom: 96px; }
 .toolbar .search-inline { display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 14px; border-radius: 999px; background: #fff; border: 1px solid var(--line); flex: 1 1 260px; max-width: 420px; }
 .toolbar .search-inline input { border: 0; outline: none; flex: 1; min-width: 0; background: transparent; }
 .toolbar select { min-height: 46px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; font-family: var(--font-display); letter-spacing: 0.08em; }
-.page-head { padding: 32px 0 8px; }
+.page-head { padding-block: 32px 8px; }
 .page-head h1 { font-size: clamp(38px, 6vw, 64px); }
 
 /* ---------- pie ---------- */
@@ -346,3 +346,80 @@ main { flex: 1; padding-bottom: 96px; }
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 @media (min-width: 900px) { .toast { bottom: 32px; } }
+
+/* =========================================================
+   Personalidad arisca
+   ========================================================= */
+
+/* rasguño de garra al pasar sobre un producto */
+.card .claw { position: absolute; inset: 8% 10%; width: 80%; height: 84%; z-index: 2; pointer-events: none; overflow: visible; }
+.card .claw path { fill: none; stroke: var(--mint); stroke-width: 3.2; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; opacity: 0; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 4px rgba(115, 216, 199, 0.9)); }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .card:hover .claw path { animation: zarpazo .55s cubic-bezier(.2, .8, .2, 1) forwards; }
+  .card:hover .claw path:nth-child(2) { animation-delay: .05s; }
+  .card:hover .claw path:nth-child(3) { animation-delay: .1s; }
+}
+@keyframes zarpazo { 0% { stroke-dashoffset: 100; opacity: 1; } 55% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+
+/* medidor de arisquez: cinco marcas de garra */
+.arisquez { display: inline-flex; gap: 3px; align-items: flex-end; }
+.arisquez i { width: 3px; height: 12px; border-radius: 2px; background: var(--line); transform: skewX(-18deg); }
+.arisquez i:nth-child(even) { height: 14px; }
+.arisquez i.on { background: var(--mint-text); }
+.arisquez-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; border: 1px dashed var(--mint-line); background: rgba(255, 255, 255, 0.6); }
+.arisquez-box small { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+.arisquez-box .arisquez i { width: 4px; height: 18px; }
+.arisquez-box .arisquez i:nth-child(even) { height: 21px; }
+.arisquez-box b { font-family: var(--font-mono); font-weight: 400; }
+.arisquez-box em { font-style: normal; font-family: var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; font-size: 13px; color: var(--mint-text); }
+
+/* lo que dice el gato */
+.humor { margin: 0; padding: 4px 0 4px 16px; border-left: 2px solid var(--mint); font-family: var(--font-display); font-weight: 300; font-size: 20px; line-height: 1.35; }
+.humor span { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+
+/* el gato mascota */
+.gato { display: block; overflow: visible; }
+.gato .oreja { transform-box: fill-box; transition: transform .25s ease; }
+.gato .oreja.izq { transform-origin: 90% 100%; }
+.gato .oreja.der { transform-origin: 10% 100%; }
+.gato .ojos { transform-box: fill-box; transform-origin: center; animation: parpadeo 5.5s infinite; }
+.gato .pupila, .gato .brillo { transition: transform .12s linear; }
+.gato .colmillos { opacity: 0; transition: opacity .15s ease; }
+@keyframes parpadeo { 0%, 93%, 100% { transform: scaleY(1); } 95.5% { transform: scaleY(0.08); } }
+@keyframes oreja-tic { 0%, 88%, 100% { transform: rotate(0); } 91% { transform: rotate(-9deg); } 94% { transform: rotate(4deg); } }
+.gato .oreja.der { animation: oreja-tic 7s infinite; }
+.gato.grande { width: 140px; margin: 0 auto 14px; }
+
+.site-footer { position: relative; }
+.gato-asoma { position: absolute; right: max(20px, calc((100vw - 1200px) / 2 + 20px)); top: 0; transform: translateY(-74%); z-index: 3; }
+.gato-btn { position: relative; display: block; width: 136px; padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.gato-btn .gato { width: 100%; transition: transform .25s ease; }
+.gato-btn:hover .gato { transform: translateY(-4px); }
+.gato-btn:focus-visible { outline: 2px solid var(--mint); outline-offset: 4px; border-radius: 12px; }
+.gato-btn .patas { position: absolute; left: 14%; right: 14%; bottom: 14%; display: flex; justify-content: space-between; pointer-events: none; }
+.gato-btn .patas i { width: 30px; height: 15px; border-radius: 15px 15px 6px 6px; background: var(--night); border: 1.5px solid var(--mint); border-bottom: 0; }
+.gato-asoma.fsss .gato { animation: erizo .45s ease; }
+.gato-asoma.fsss .oreja.izq { transform: rotate(-38deg); animation: none; }
+.gato-asoma.fsss .oreja.der { transform: rotate(38deg); animation: none; }
+.gato-asoma.fsss .colmillos { opacity: 1; }
+.gato-asoma.fsss .pupila { rx: 1.2; }
+@keyframes erizo { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-3px, -6px) scale(1.06); } 40% { transform: translate(3px, -6px) scale(1.06); } 60% { transform: translate(-2px, -3px); } 80% { transform: translate(2px, -2px); } }
+.globo { position: absolute; right: 70%; bottom: 82%; width: max-content; max-width: 220px; margin: 0; padding: 10px 14px; border-radius: 14px 14px 2px 14px; background: #fff; color: var(--night); border: 1px solid var(--mint-line); box-shadow: var(--shadow); font-family: var(--font-display); font-size: 15px; letter-spacing: 0.02em; opacity: 0; transform: translateY(6px) scale(.96); transform-origin: bottom right; transition: opacity .2s ease, transform .2s ease; pointer-events: none; }
+.gato-asoma.habla .globo { opacity: 1; transform: none; }
+@media (max-width: 899px) { .gato-btn { width: 88px; } .gato-btn .patas i { width: 24px; height: 12px; } }
+@media (prefers-reduced-motion: reduce) { .gato .ojos, .gato .oreja.der, .gato-asoma.fsss .gato { animation: none; } }
+
+/* el contador del carrito salta cuando atrapas algo */
+.badge.bump { animation: salto .5s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes salto { 0% { transform: scale(1); } 40% { transform: scale(1.6) rotate(-10deg); } 100% { transform: scale(1); } }
+
+/* manifiesto arisco */
+.manifiesto { position: relative; padding: 30px 26px; }
+.manifiesto > * { position: relative; }
+.manifiesto h2 { font-family: var(--font-display); font-weight: 200; font-size: clamp(30px, 4.4vw, 46px); letter-spacing: 0.06em; text-transform: uppercase; margin: 8px 0 22px; color: #fff; }
+.manifiesto ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); counter-reset: m; }
+.manifiesto li { counter-increment: m; padding-top: 16px; border-top: 1px solid rgba(166, 239, 226, 0.25); color: #B8CCDC; font-size: 15px; }
+.manifiesto li::before { content: "0" counter(m) " /"; display: block; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; color: var(--glow); margin-bottom: 8px; }
+.manifiesto li b { display: block; color: #fff; font-family: var(--font-display); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; font-size: 15px; margin-bottom: 4px; }
+.manifiesto .garra-fondo { position: absolute; right: -10px; top: -10px; width: 220px; opacity: .14; pointer-events: none; }
+.manifiesto .garra-fondo path { fill: none; stroke: var(--glow); stroke-width: 9; stroke-linecap: round; }
