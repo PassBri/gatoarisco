@@ -22,6 +22,32 @@
   ];
   const NEUTRO = { ti: -21, td: -17, di: 23, dd: 27 };
   const CADERA = { x: -23, y: -35 }, HOMBRO = { x: 21, y: -33.5 };
+  /* Curvas de articulaciones tomadas de la biomecánica del gato:
+     - Tobillo (corvejón), ángulo tibia-metatarso en grados. Ciclo de Philippson descrito por Goslow et al. (1973):
+       al apoyar cede (E2), luego se extiende para empujar (E3), en el aire se flexiona fuerte (F) y se estira antes de tocar (E1).
+       Al galopar los rangos son mayores.
+     - Muñeca: el metacarpo va un poco adelantado en el apoyo y se dobla hacia atrás en el aire (radianes, + = doblada atrás).
+     - Escápula: rota sobre la cruz; adelante al apoyar la mano y atrás al despegar (grados desde la vertical).
+     Cada tabla tiene claves [fracción, valor] para el apoyo (0 = toca el suelo, 1 = despega) y para el aire. */
+  const DATOS = {
+    paso: {
+      tobillo: { apoyo: [[0, 118], [0.18, 104], [0.6, 120], [1, 142]], aire: [[0, 142], [0.35, 80], [0.8, 112], [1, 118]] },
+      muneca: { apoyo: [[0, -0.12], [0.5, -0.32], [0.88, -0.42], [1, 0.25]], aire: [[0, 0.25], [0.32, 1.65], [0.72, 0.55], [1, -0.12]] },
+      escapula: { apoyo: [[0, 20], [1, -12]], aire: [[0, -12], [0.5, 0], [1, 20]] },
+    },
+    galope: {
+      tobillo: { apoyo: [[0, 112], [0.2, 96], [1, 156]], aire: [[0, 156], [0.4, 62], [0.85, 104], [1, 112]] },
+      muneca: { apoyo: [[0, -0.1], [0.6, -0.42], [1, 0.4]], aire: [[0, 0.4], [0.3, 1.95], [0.75, 0.3], [1, -0.1]] },
+      escapula: { apoyo: [[0, 28], [1, -22]], aire: [[0, -22], [0.55, 6], [1, 28]] },
+    },
+  };
+  function curva(claves, x) {
+    for (let i = 0; i < claves.length - 1; i++) {
+      const [x0, y0] = claves[i], [x1, y1] = claves[i + 1];
+      if (x <= x1) { const t = clamp((x - x0) / (x1 - x0 || 1), 0, 1); return y0 + (y1 - y0) * (0.5 - 0.5 * Math.cos(Math.PI * t)); }
+    }
+    return claves[claves.length - 1][1];
+  }
   const FRASES = ['¡Fsss!', '¡Ni lo pienses!', '¡Fsss! Esto es mío.', 'Arisco, no antipático.'];
 
   const lerp = (a, b, k) => a + (b - a) * k;
@@ -111,8 +137,8 @@
               extra = tr ? 9 * flexL + 3 : -4 * flexL + 3;
             }
             p.hasta = s.d + falta + NEUTRO[k] + (M.apoyo * Lc) / 2 + extra;
-            p.u = u; p.x = lerp(p.desde, p.hasta, suave(u)); p.y = -alza * Math.sin(Math.PI * u);
-          } else { p.u = 0; p.x = p.px; p.y = 0; }
+            p.u = u; p.x = lerp(p.desde, p.hasta, suave(u)); p.y = -alza * Math.sin(Math.PI * Math.pow(u, 0.78));
+          } else { p.u = 0; p.s = f / M.apoyo; p.x = p.px; p.y = 0; }
         } else if (p.estado === 'aire') {
           p.u = Math.min(1, p.u + dt / 0.2); p.hasta = s.d + NEUTRO[k];
           p.x = lerp(p.desde, p.hasta, suave(p.u)); p.y = -alza * 0.7 * Math.sin(Math.PI * p.u);
@@ -184,16 +210,27 @@
     const bez = (a, b, c, t) => ({ x: (1 - t) * (1 - t) * a.x + 2 * (1 - t) * t * b.x + t * t * c.x, y: (1 - t) * (1 - t) * a.y + 2 * (1 - t) * t * b.y + t * t * c.y });
     const cub = (a, b, c, d, t) => { const u = 1 - t; return { x: u * u * u * a.x + 3 * u * u * t * b.x + 3 * u * t * t * c.x + t * t * t * d.x, y: u * u * u * a.y + 3 * u * u * t * b.y + 3 * u * t * t * c.y + t * t * t * d.y }; };
 
+    function articulacion(nombre, p) {
+      const T = DATOS[s.marcha][nombre], quieto = curva(DATOS.paso[nombre].apoyo, 0.45);
+      const v = p.estado === 'aire' ? curva(T.aire, p.u) : curva(T.apoyo, p.s == null ? 0.45 : p.s);
+      return lerp(quieto, v, clamp(s.amp * 1.6, 0, 1));
+    }
     function pata({ k, tr, cerca }, raiz) {
       const p = pies[k];
       const pie = { x: p.x - s.d, y: p.y };
       ctx.fillStyle = cerca ? pielCerca : pielLejos;
       const enAire = p.estado === 'aire', u = p.u;
       if (tr) {
-        const atras = clamp((raiz.x - pie.x - 4) / 26, 0, 1);
-        const a = enAire ? 0.45 + (s.marcha === 'galope' ? 0.5 : 0.8) * Math.sin(Math.PI * Math.min(1, u * 1.15)) : 0.32 + atras * 0.55;
-        const corvejon = { x: pie.x - 11 * Math.sin(a), y: pie.y - 11 * Math.cos(a) };
-        const [rodilla, fin] = ik(raiz, corvejon, 16, 17, -1);
+        // cadena cadera-rodilla-corvejón-pie: el pie está fijo y el ángulo del tobillo sale de los datos
+        const A = articulacion('tobillo', p) * Math.PI / 180;
+        let th = -Math.PI / 2 - 0.45, rodilla, fin;
+        for (let it = 0; it < 4; it++) {
+          const corvejon = { x: pie.x + 11 * Math.cos(th), y: pie.y + 11 * Math.sin(th) };
+          [rodilla, fin] = ik(raiz, corvejon, 16, 17, -1);
+          th = Math.atan2(rodilla.y - fin.y, rodilla.x - fin.x) + A + Math.PI;
+          th = ((th + Math.PI) % TAU + TAU) % TAU - Math.PI;                    // normalizar
+          th = clamp(th, -Math.PI + 0.62, -Math.PI / 2 + 0.25);               // digitígrado: el talón nunca toca el suelo
+        }
         // pierna trasera completa: muslo y pantorrilla forman una banda gruesa desde el anca hasta el talón;
         // la rodilla queda adelante bajo el ijar y el metatarso baja delgado hasta los dedos
         const tib = { x: fin.x - rodilla.x, y: fin.y - rodilla.y }, tl = Math.hypot(tib.x, tib.y) || 1;
@@ -227,14 +264,24 @@
         if (cerca) mechones([0.3, 0.5, 0.7].map((t) => bez({ x: raiz.x - 9.5, y: raiz.y + 1 }, { x: raiz.x - 9, y: raiz.y + 9 }, { x: rodilla.x - 3.2, y: rodilla.y + 2.4 }, t)), -0.8, 0.6, 2, 3, 0.9);
         ctx.beginPath(); ctx.ellipse(pie.x + 2.2, pie.y - 1.6, 4.4, 2.4, 0, 0, TAU); ctx.fill();
               } else {
-        const giro = enAire ? -1.25 * Math.sin(Math.PI * Math.min(1, u * 1.35)) : 0;
-        const vx = -0.9, vy = -4.6;
-        const muneca = { x: pie.x + vx * Math.cos(giro) - vy * Math.sin(giro), y: pie.y + vx * Math.sin(giro) + vy * Math.cos(giro) };
-        const [codo, fin] = ik(raiz, muneca, 15, 16, 1);
-        hueso(raiz, codo, cerca ? 10.5 : 8.5, 6.2); hueso(codo, fin, 5.8, 4.1);
-        const dedos = { x: muneca.x + 4.6 * Math.sin(-giro * 0.9 + 0.25), y: muneca.y + 4.6 * Math.cos(-giro * 0.9 + 0.25) };
-        hueso(fin, dedos, 4.1, 3.4);
-        ctx.beginPath(); ctx.ellipse(dedos.x + 1.8, dedos.y - 0.7, 4, 2.2, enAire ? giro * 0.6 : 0, 0, TAU); ctx.fill();
+        // la escápula gira sobre la cruz y lleva consigo el hombro
+        const sg = articulacion('escapula', p) * Math.PI / 180;
+        const cruzE = { x: raiz.x - 1, y: raiz.y - 6.5 };
+        const hom = { x: cruzE.x + 7.5 * Math.sin(sg), y: cruzE.y + 7.5 * Math.cos(sg) };
+        // cadena hombro-codo-muñeca-dedos: los dedos fijos y el ángulo de la muñeca sale de los datos
+        const dW = articulacion('muneca', p);
+        let dirR = Math.PI / 2, codo, fin, muneca;
+        for (let it = 0; it < 4; it++) {
+          const dir = dirR + dW;
+          muneca = { x: pie.x - 4.6 * Math.cos(dir), y: pie.y - 4.6 * Math.sin(dir) };
+          [codo, fin] = ik(hom, muneca, 15, 16, 1);
+          dirR = Math.atan2(fin.y - codo.y, fin.x - codo.x);
+        }
+        if (cerca) hueso({ x: cruzE.x, y: cruzE.y + 1.5 }, hom, 7, 9.5);
+        hueso(hom, codo, cerca ? 10.5 : 8.5, 6.2); hueso(codo, fin, 5.8, 4.1);
+        hueso(fin, pie, 4.1, 3.4);
+        const giro = Math.atan2(pie.y - fin.y, pie.x - fin.x) - Math.PI / 2;
+        ctx.beginPath(); ctx.ellipse(pie.x + 1.6, pie.y - 1.2, 4, 2.2, enAire ? giro * 0.5 : 0, 0, TAU); ctx.fill();
         if (cerca) mechones([{ x: codo.x - 2.5, y: codo.y + 1 }, { x: codo.x - 2, y: codo.y + 3 }], -1, 0.4, 3, 11);   // mechón del codo
       }
     }
