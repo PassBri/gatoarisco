@@ -7,12 +7,23 @@ Funciona en celular y computador, y se puede instalar en el celular como app (PW
 
 ## Qué incluye
 
-- Inicio con lanzamiento (drop) y cuenta regresiva, categorías, destacados, embajadores y fundación.
+- Inicio con lanzamiento (drop) y cuenta regresiva, categorías, destacados, manifiesto arisco y embajadores.
 - Tienda con filtros por categoría, búsqueda y orden por precio.
 - Página de producto con variantes (acabado, talla), cantidad, existencias y productos relacionados.
 - Carrito guardado en el navegador, código de embajador con descuento y envío gratis desde un monto.
 - El pedido se envía por WhatsApp con el detalle completo (el pago en línea con Wompi llega en la siguiente fase).
-- Páginas de Embajadores (3 niveles) y de la Fundación Gatoarisco (Fondo de Protección Social).
+- Página de Embajadores (3 niveles).
+- Fundación Gatoarisco (Fondo de Protección Social): ya está construida pero **oculta**.
+  Se muestra u oculta con un clic desde el panel.
+
+## Panel de administración
+
+Entra a `https://passbri.github.io/gatoarisco/panel.html` (no aparece en el menú).
+
+1. La primera vez pega una llave de GitHub (token) con permiso **Contents: Read and write** solo sobre el
+   repositorio `gatoarisco`. El panel explica cómo crearla. Queda guardada solo en ese navegador.
+2. Toca el interruptor **Fundación Gatoarisco**. El panel guarda el cambio en `data/ajustes.json`
+   y la página pública se actualiza en 1 o 2 minutos.
 
 ## Cómo editar
 
@@ -20,6 +31,7 @@ Funciona en celular y computador, y se puede instalar en el celular como app (PW
 |---|---|
 | WhatsApp, correo, envío gratis, descuento de embajador, fecha del drop | `assets/js/config.js` |
 | Productos, precios, existencias, variantes, categorías | `data/productos.json` |
+| Mostrar u ocultar la fundación (o desde el panel) | `data/ajustes.json` |
 | Imágenes de productos | `assets/img/productos/` (mismo nombre que el `id` del producto) |
 | Logos e íconos | `assets/img/marca/` |
 | Colores y estilos | `assets/css/styles.css` |

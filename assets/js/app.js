@@ -26,7 +26,8 @@
   };
 
   /* ---------- encabezado, navegación y pie ---------- */
-  const NAV = [
+  let NAV = [];
+  const NAV_TODO = [
     ['index.html', 'Inicio', 'home'],
     ['tienda.html', 'Tienda', 'shop'],
     ['embajadores.html', 'Embajadores', 'star'],
@@ -74,7 +75,7 @@
         <nav aria-label="Pie de página">
           <a href="tienda.html">Tienda</a>
           <a href="embajadores.html">Embajadores</a>
-          <a href="impacto.html">Fundación e impacto</a>
+          ${CFG.fundacion ? '<a href="impacto.html">Fundación e impacto</a>' : ''}
           <a href="https://wa.me/${CFG.whatsapp}" rel="noopener">WhatsApp</a>
           <a href="mailto:${CFG.correo}">${CFG.correo}</a>
         </nav>
@@ -340,7 +341,19 @@
     });
   }
 
+  /* ---------- ajustes que se cambian desde el panel (data/ajustes.json) ---------- */
+  async function ajustes() {
+    try {
+      const r = await fetch('data/ajustes.json?t=' + Date.now(), { cache: 'no-store' });
+      Object.assign(CFG, await r.json());
+    } catch (e) { /* si falla, la fundación queda oculta */ }
+    if (CFG.fundacion) document.documentElement.classList.add('con-fundacion');
+    NAV = NAV_TODO.filter(([href]) => CFG.fundacion || href !== 'impacto.html');
+  }
+
   /* ---------- arranque ---------- */
+  ajustes().then(arrancar);
+  function arrancar() {
   chrome();
   if (window.gatoMontar) gatoMontar();
   const g404 = $('#gato-404'); if (g404 && window.gatoSVG) g404.innerHTML = gatoSVG('grande');
@@ -351,4 +364,5 @@
   if (run) run().then(() => window.gatoMirar && gatoMirar()).catch(() => { const m = $('main'); if (m) m.insertAdjacentHTML('afterbegin', '<p class="wrap alert alert-amber" style="margin-top:20px">No pudimos cargar los productos. Recarga la página.</p>'); });
   formToWhatsApp('#form-embajador', 'Hola, quiero ser embajador de Gatoarisco.');
   formToWhatsApp('#form-vendedor', 'Hola, quiero vender con la Fundación Gatoarisco.');
+  }
 })();

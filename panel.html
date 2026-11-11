@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panel · Gatoarisco</title>
+<meta name="description" content="Panel de administración de Gatoarisco.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0B1A2A">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/marca/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/img/marca/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Panel · Gatoarisco">
+<meta property="og:description" content="Panel de administración de Gatoarisco.">
+<meta property="og:image" content="https://passbri.github.io/gatoarisco/assets/img/marca/og-gatoarisco.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@300;400&family=Saira:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css?v=202611110420">
+</head>
+<body data-page="panel">
+<a class="sr-only" href="#main">Saltar al contenido</a>
+<header class="site-header" id="site-header"></header>
+<main id="main">
+
+<section class="wrap page-head">
+  <p class="eyebrow">Solo para administración</p>
+  <h1 class="h-display">Panel</h1>
+  <p class="note" style="max-width:62ch">Los cambios se guardan en GitHub y la página pública se actualiza sola en uno o dos minutos.</p>
+</section>
+<section class="wrap section" style="display:grid;gap:18px;max-width:760px;margin-inline:0">
+  <div class="panel brackets" style="padding:24px" id="p-acceso">
+    <h2 class="h-section" style="font-size:20px;margin:0 0 6px">Acceso</h2>
+    <p class="note" id="p-acceso-estado" style="margin:0 0 14px"></p>
+    <form id="p-token-form" class="field" style="margin:0">
+      <label for="p-token">Llave de GitHub (token)</label>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <input id="p-token" type="password" autocomplete="off" placeholder="github_pat_..." style="flex:1 1 260px">
+        <button class="btn btn-dark" type="submit">Guardar llave</button>
+        <button class="btn btn-ghost" type="button" id="p-salir">Borrar llave</button>
+      </div>
+    </form>
+    <details style="margin-top:12px"><summary class="note" style="cursor:pointer">¿Cómo saco la llave? (se hace una sola vez)</summary>
+      <ol class="note" style="line-height:1.7">
+        <li>Entra a <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a>.</li>
+        <li>Nombre: <b>Panel Gatoarisco</b>. Vencimiento: el que prefieras.</li>
+        <li>En <b>Repository access</b> elige <b>Only select repositories</b> → <b>gatoarisco</b>.</li>
+        <li>En <b>Permissions → Repository permissions → Contents</b> elige <b>Read and write</b>.</li>
+        <li>Toca <b>Generate token</b>, cópiala y pégala aquí. Queda guardada solo en este navegador.</li>
+      </ol>
+    </details>
+  </div>
+
+  <div class="panel brackets" style="padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+      <div>
+        <h2 class="h-section" style="font-size:20px;margin:0">Fundación Gatoarisco</h2>
+        <p class="note" style="margin:6px 0 0;max-width:46ch">Página Impacto, reparto de la venta y fondo social. Actívala cuando la fundación esté registrada.</p>
+      </div>
+      <button type="button" class="switch" role="switch" aria-checked="false" id="sw-fundacion" data-ajuste="fundacion" disabled>
+        <span class="switch-pista"><span class="switch-bola"></span></span>
+        <span class="switch-texto">Oculta</span>
+      </button>
+    </div>
+    <p class="alert alert-mint" id="p-msg" style="margin:18px 0 0" hidden><span class="dot"></span><span></span></p>
+  </div>
+</section>
+<script>
+(function () {
+  var REPO = 'PassBri/gatoarisco', RUTA = 'data/ajustes.json', API = 'https://api.github.com/repos/' + REPO + '/contents/' + RUTA;
+  var $ = function (s) { return document.querySelector(s); };
+  function leerToken() { try { return localStorage.getItem('ga_admin_token') || ''; } catch (e) { return ''; } }
+  function guardarToken(t) { try { t ? localStorage.setItem('ga_admin_token', t) : localStorage.removeItem('ga_admin_token'); } catch (e) {} }
+  var ajustes = {}, sha = null, ocupado = false;
+  function msg(t, tipo) { var m = $('#p-msg'); m.hidden = false; m.className = 'alert ' + (tipo === 'error' ? 'alert-amber' : 'alert-mint'); m.lastElementChild.textContent = t; }
+  function pintar() {
+    var tok = leerToken();
+    $('#p-acceso-estado').textContent = tok ? 'Llave guardada en este navegador. Ya puedes cambiar los interruptores.' : 'Pega tu llave de GitHub para poder cambiar los interruptores. Sin llave solo puedes ver el estado.';
+    $('#p-token').value = '';
+    document.querySelectorAll('[data-ajuste]').forEach(function (b) {
+      var on = !!ajustes[b.dataset.ajuste];
+      b.setAttribute('aria-checked', on); b.querySelector('.switch-texto').textContent = on ? 'Visible' : 'Oculta';
+      b.disabled = !tok || ocupado || sha === null;
+    });
+  }
+  function b64(txt) { return btoa(unescape(encodeURIComponent(txt))); }
+  function cargar() {
+    var h = { Accept: 'application/vnd.github+json' }, tok = leerToken();
+    if (tok) h.Authorization = 'Bearer ' + tok;
+    return fetch(API + '?ref=main&t=' + Date.now(), { headers: h, cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    }).then(function (j) {
+      sha = j.sha; ajustes = JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g, ''))))); pintar();
+    }).catch(function (e) {
+      msg(String(e.message) === '401' ? 'La llave no funciona. Revisa que esté bien copiada y que no haya vencido.' : 'No pude leer los ajustes desde GitHub. Revisa tu conexión.', 'error'); pintar();
+    });
+  }
+  document.querySelectorAll('[data-ajuste]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var clave = b.dataset.ajuste, nuevo = Object.assign({}, ajustes); nuevo[clave] = !ajustes[clave];
+      ocupado = true; pintar(); msg('Guardando…');
+      fetch(API, {
+        method: 'PUT',
+        headers: { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + leerToken(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'Panel: ' + clave + ' ' + (nuevo[clave] ? 'visible' : 'oculta'), content: b64(JSON.stringify(nuevo, null, 2) + '\n'), sha: sha, branch: 'main' })
+      }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(r.status + ' ' + (j.message || '')); return j; }); })
+        .then(function (j) {
+          sha = j.content.sha; ajustes = nuevo; ocupado = false; pintar();
+          msg((nuevo[clave] ? 'Listo: la fundación quedó VISIBLE.' : 'Listo: la fundación quedó OCULTA.') + ' La página pública se actualiza en 1 o 2 minutos.');
+        })
+        .catch(function (e) {
+          ocupado = false; var c = String(e.message);
+          msg(c.indexOf('401') === 0 ? 'La llave no funciona o venció. Crea una nueva.' : c.indexOf('403') === 0 || c.indexOf('404') === 0 ? 'La llave no tiene permiso de escritura en gatoarisco (Contents: Read and write).' : c.indexOf('409') === 0 ? 'Alguien cambió los ajustes al mismo tiempo. Recargo y vuelve a intentarlo.' : 'No se pudo guardar: ' + c, 'error');
+          cargar();
+        });
+    });
+  });
+  $('#p-token-form').addEventListener('submit', function (e) { e.preventDefault(); var t = $('#p-token').value.trim(); if (t) { guardarToken(t); cargar(); } });
+  $('#p-salir').addEventListener('click', function () { guardarToken(''); $('#p-msg').hidden = true; pintar(); });
+  pintar(); cargar();
+})();
+</script>
+</main>
+<footer class="site-footer" id="site-footer"></footer>
+<nav class="bottom-nav" id="bottom-nav" aria-label="Navegación inferior"></nav>
+<script src="assets/js/config.js?v=202611110420"></script>
+<script src="assets/js/gato.js?v=202611110420"></script>
+<script src="assets/js/app.js?v=202611110420"></script>
+</body>
+</html>
