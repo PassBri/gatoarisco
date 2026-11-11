@@ -378,37 +378,35 @@ main { flex: 1; padding-bottom: 96px; }
 .humor { margin: 0; padding: 4px 0 4px 16px; border-left: 2px solid var(--mint); font-family: var(--font-display); font-weight: 300; font-size: 20px; line-height: 1.35; }
 .humor span { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
 
-/* el gato mascota */
+/* el gato mascota: el gato del logo */
 .gato { display: block; overflow: visible; }
-.gato .oreja { transform-box: fill-box; transition: transform .25s ease; }
-.gato .oreja.izq { transform-origin: 90% 100%; }
-.gato .oreja.der { transform-origin: 10% 100%; }
-.gato .ojos { transform-box: fill-box; transform-origin: center; animation: parpadeo 5.5s infinite; }
+.gato .craneo { fill: var(--night); }
+.gato .huecos path { fill: var(--mint-text); }
+.gato .ojo-fondo { fill: var(--mint); transition: fill .15s ease; }
+.gato .pupila { fill: var(--night); transform-box: fill-box; transform-origin: center; }
+.gato .brillo { fill: #E8FFFA; }
+.gato .ojos { transform-box: fill-box; transform-origin: center; animation: parpadeo 5.5s infinite; filter: drop-shadow(0 0 18px rgba(115, 216, 199, .55)); }
 .gato .pupila, .gato .brillo { transition: transform .12s linear; }
-.gato .colmillos { opacity: 0; transition: opacity .15s ease; }
 @keyframes parpadeo { 0%, 93%, 100% { transform: scaleY(1); } 95.5% { transform: scaleY(0.08); } }
-@keyframes oreja-tic { 0%, 88%, 100% { transform: rotate(0); } 91% { transform: rotate(-9deg); } 94% { transform: rotate(4deg); } }
-.gato .oreja.der { animation: oreja-tic 7s infinite; }
-.gato.grande { width: 140px; margin: 0 auto 14px; }
+.gato.grande { width: 120px; margin: 0 auto 14px; }
 
 .site-footer { position: relative; }
-.gato-asoma { position: absolute; right: max(20px, calc((100vw - 1200px) / 2 + 20px)); top: 0; transform: translateY(-74%); z-index: 3; }
-.gato-btn { position: relative; display: block; width: 136px; padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.gato-btn .gato { width: 100%; transition: transform .25s ease; }
-.gato-btn:hover .gato { transform: translateY(-4px); }
+.gato-asoma { position: absolute; right: max(20px, calc((100vw - 1200px) / 2 + 20px)); top: 0; transform: translateY(-80%); z-index: 3; }
+.gato-btn { position: relative; display: block; width: 118px; padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.gato-btn .gato { width: 100%; transition: transform .25s ease; filter: drop-shadow(0 -6px 14px rgba(11, 26, 42, .18)); }
+.gato-btn:hover .gato { transform: translateY(-5px) rotate(-3deg); }
 .gato-btn:focus-visible { outline: 2px solid var(--mint); outline-offset: 4px; border-radius: 12px; }
-.gato-btn .patas { position: absolute; left: 14%; right: 14%; bottom: 14%; display: flex; justify-content: space-between; pointer-events: none; }
+.gato-btn .patas { position: absolute; left: 4%; right: 4%; top: 74%; display: flex; justify-content: space-between; pointer-events: none; }
 .gato-btn .patas i { width: 30px; height: 15px; border-radius: 15px 15px 6px 6px; background: var(--night); border: 1.5px solid var(--mint); border-bottom: 0; }
 .gato-asoma.fsss .gato { animation: erizo .45s ease; }
-.gato-asoma.fsss .oreja.izq { transform: rotate(-38deg); animation: none; }
-.gato-asoma.fsss .oreja.der { transform: rotate(38deg); animation: none; }
-.gato-asoma.fsss .colmillos { opacity: 1; }
-.gato-asoma.fsss .pupila { rx: 1.2; }
-@keyframes erizo { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-3px, -6px) scale(1.06); } 40% { transform: translate(3px, -6px) scale(1.06); } 60% { transform: translate(-2px, -3px); } 80% { transform: translate(2px, -2px); } }
-.globo { position: absolute; right: 70%; bottom: 82%; width: max-content; max-width: 220px; margin: 0; padding: 10px 14px; border-radius: 14px 14px 2px 14px; background: #fff; color: var(--night); border: 1px solid var(--mint-line); box-shadow: var(--shadow); font-family: var(--font-display); font-size: 15px; letter-spacing: 0.02em; opacity: 0; transform: translateY(6px) scale(.96); transform-origin: bottom right; transition: opacity .2s ease, transform .2s ease; pointer-events: none; }
+.gato-asoma.fsss .ojo-fondo { fill: var(--amber); }
+.gato-asoma.fsss .pupila { transform: scaleX(.45); }
+.gato-asoma.fsss .ojos { filter: drop-shadow(0 0 22px rgba(255, 181, 71, .8)); }
+@keyframes erizo { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-4px, -8px) scale(1.07); } 40% { transform: translate(4px, -8px) scale(1.07); } 60% { transform: translate(-3px, -4px); } 80% { transform: translate(3px, -2px); } }
+.globo { position: absolute; right: 78%; bottom: 74%; width: max-content; max-width: 220px; margin: 0; padding: 10px 14px; border-radius: 14px 14px 2px 14px; background: #fff; color: var(--night); border: 1px solid var(--mint-line); box-shadow: var(--shadow); font-family: var(--font-display); font-size: 15px; letter-spacing: 0.02em; opacity: 0; transform: translateY(6px) scale(.96); transform-origin: bottom right; transition: opacity .2s ease, transform .2s ease; pointer-events: none; }
 .gato-asoma.habla .globo { opacity: 1; transform: none; }
-@media (max-width: 899px) { .gato-btn { width: 88px; } .gato-btn .patas i { width: 24px; height: 12px; } }
-@media (prefers-reduced-motion: reduce) { .gato .ojos, .gato .oreja.der, .gato-asoma.fsss .gato { animation: none; } }
+@media (max-width: 899px) { .gato-btn { width: 84px; } .gato-btn .patas i { width: 22px; height: 11px; } }
+@media (prefers-reduced-motion: reduce) { .gato .ojos, .gato-asoma.fsss .gato { animation: none; } }
 
 /* el contador del carrito salta cuando atrapas algo */
 .badge.bump { animation: salto .5s cubic-bezier(.3, 1.6, .5, 1); }
