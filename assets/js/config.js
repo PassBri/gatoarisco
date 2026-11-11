@@ -13,6 +13,6 @@ window.GATOARISCO = {
   dropNombre: 'Gatos Orbitales',
   // Supabase (panel de control y existencias en tiempo real). Están en Supabase → Project Settings → API.
   // La "anon key" es pública por diseño: la seguridad la ponen las reglas del archivo supabase/esquema.sql.
-  supabaseUrl: '',
-  supabaseAnonKey: '',
+  supabaseUrl: 'https://mgkdxwxhvzsbedotihgc.supabase.co/rest/v1/',
+  supabaseAnonKey: 'sb_publishable_4KkRbm4paiICAGzERIzahA_4_qg75Gy',
 };
