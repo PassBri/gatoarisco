@@ -434,10 +434,10 @@ main { flex: 1; padding-bottom: 96px; }
 .switch:focus-visible { outline: 2px solid var(--mint); outline-offset: 4px; border-radius: 12px; }
 
 /* gato que camina y galopa sobre el borde de una sección */
-.gato-corre { position: relative; height: 96px; margin-top: -24px; touch-action: manipulation; }
+.gato-corre { position: relative; height: 116px; margin-top: -40px; touch-action: manipulation; }
 .gato-corre-lienzo { position: absolute; inset: 0; display: block; }
 .gato-corre[data-riel]::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--mint-line) 12%, var(--mint-line) 88%, transparent); }
 .globo-corre { position: absolute; top: -6px; margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--night); color: #fff; font-family: var(--font-display); letter-spacing: .06em; font-size: 14px; white-space: nowrap; opacity: 0; transform: translateY(4px); transition: opacity .15s ease, transform .15s ease; pointer-events: none; box-shadow: 0 0 0 1px rgba(255, 181, 71, .6), 0 8px 20px -8px rgba(11, 26, 42, .5); }
 .globo-corre.ver { opacity: 1; transform: none; }
-@media (max-width: 599px) { .gato-corre { height: 78px; margin-top: -18px; } }
+@media (max-width: 599px) { .gato-corre { height: 92px; margin-top: -28px; } }
 @media (prefers-reduced-motion: reduce) { .gato-corre { display: none; } }
