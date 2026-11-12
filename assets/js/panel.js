@@ -482,6 +482,27 @@
       catch (err) { estado('No se guardó', 'error'); aviso('No se pudo subir la foto: ' + err.message, 'error'); }
     }
   });
+  // mover la tabla arrastrando con el mouse
+  let arrastre = null;
+  document.addEventListener('pointerdown', (e) => {
+    const caja = e.target.closest && e.target.closest('.grilla-caja');
+    if (!caja || e.pointerType !== 'mouse' || e.button !== 0 || e.target.closest('input, select, button, label, a')) return;
+    arrastre = { caja, x: e.clientX, y: e.clientY, l: caja.scrollLeft, t: caja.scrollTop, movio: false };
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!arrastre) return;
+    const dx = e.clientX - arrastre.x, dy = e.clientY - arrastre.y;
+    if (!arrastre.movio && Math.abs(dx) + Math.abs(dy) < 4) return;
+    arrastre.movio = true; arrastre.caja.classList.add('arrastrando');
+    arrastre.caja.scrollLeft = arrastre.l - dx; arrastre.caja.scrollTop = arrastre.t - dy; e.preventDefault();
+  });
+  document.addEventListener('pointerup', () => { if (arrastre) arrastre.caja.classList.remove('arrastrando'); arrastre = null; });
+  // Shift + rueda (o la rueda sobre la barra) mueve hacia los lados
+  document.addEventListener('wheel', (e) => {
+    const caja = e.target.closest && e.target.closest('.grilla-caja'); if (!caja) return;
+    if (e.shiftKey && !e.deltaX) { caja.scrollLeft += e.deltaY; e.preventDefault(); }
+  }, { passive: false });
+
   document.addEventListener('keydown', (e) => {
     const el = e.target; if (!el.matches || !el.matches('.grilla [data-g]')) return;
     const tr = el.closest('tr');
@@ -510,7 +531,7 @@
         <button class="btn btn-ghost btn-sm" data-accion="nuevo-ajuste">Ajustar existencias</button>
         <button class="btn btn-ghost btn-sm" data-accion="categorias">Categorías</button>
       </div>
-      <p class="nota g-ayuda">Toca cualquier celda para editarla: se guarda sola al salir de la celda. <b>Enter</b> baja a la fila siguiente. Toca la foto para cambiarla. Si hay muchas columnas, desliza la tabla hacia la derecha.</p>
+      <p class="nota g-ayuda">Toca cualquier celda para editarla: se guarda sola al salir de la celda. <b>Enter</b> baja a la fila siguiente. Toca la foto para cambiarla. Para ver más columnas, <b>arrastra la tabla con el mouse</b> hacia los lados o usa <b>Shift + rueda</b>.</p>
       <div class="tabla-scroll grilla-caja"><table class="tabla grilla"><thead><tr><th class="g-fija g-c-foto">Foto</th><th class="g-fija g-c-nombre">Producto</th><th>Categoría</th><th class="der">Precio</th><th class="der">Precio antes</th><th class="der">Costo</th><th class="der">Margen</th><th class="der">Existencias</th><th class="der">Avisar en</th><th class="der">Vendidos</th><th>Visible</th><th>Destacado</th><th>Nuevo</th><th>Línea</th><th>Arisquez</th><th></th></tr></thead><tbody>
       ${UI.borrador ? filaGrilla(null, cats) : ''}
       ${lista.map((p) => filaGrilla(p, cats)).join('')}</tbody></table></div>
@@ -1229,7 +1250,9 @@
     $$('.nav-panel [data-vista]').forEach((a) => a.setAttribute('aria-current', a.dataset.vista === UI.vista ? 'page' : 'false'));
     const btn = $('#accion-principal');
     if (V.boton) { btn.hidden = false; btn.dataset.accion = V.boton[0]; $('span', btn).textContent = V.boton[1]; } else btn.hidden = true;
+    const gc = $('.grilla-caja'); const pos = gc ? [gc.scrollLeft, gc.scrollTop] : null;
     $('#vista').innerHTML = V.html();
+    const gn = $('.grilla-caja'); if (gn && pos) { gn.scrollLeft = pos[0]; gn.scrollTop = pos[1]; }
     // filtros que se escriben
     const enl = (id, grupo, k) => { const el = $('#' + id); if (!el) return; el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => { UI.filtros[grupo][k] = el.value; const pos = el.selectionStart; render(); const n = $('#' + id); if (n && n.tagName === 'INPUT') { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* nada */ } } }); };
     enl('f-q', 'ventas', 'q'); enl('f-estado', 'ventas', 'estado'); enl('f-canal', 'ventas', 'canal'); enl('f-inv', 'inv', 'q'); enl('f-cat', 'inv', 'cat'); enl('f-cli', 'cli', 'q'); enl('f-msj', 'msj', 'ver'); enl('f-ped', 'ped', 'ver');
