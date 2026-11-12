@@ -203,3 +203,5 @@ button.pchip { cursor: pointer; }
 .mensaje header .nota { margin-left: auto; }
 .mensaje p { margin: 10px 0; white-space: normal; color: var(--text-2); }
 .mensaje footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; border-top: 1px dashed var(--line); padding-top: 10px; }
+.modal-error { margin: 0 20px 4px; padding: 10px 14px; border-radius: 12px; background: rgba(229, 83, 61, .1); border: 1px solid rgba(229, 83, 61, .45); color: #8E2414; font-size: 14px; }
+dialog .aviso { position: fixed; }

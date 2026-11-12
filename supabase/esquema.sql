@@ -203,6 +203,8 @@ grant select on public.catalogo to anon, authenticated;
 
 -- ---------- fotos de productos (almacenamiento público de solo lectura) ----------
 insert into storage.buckets (id, name, public) values ('productos', 'productos', true) on conflict (id) do nothing;
+drop policy if exists "fotos_admin_leer" on storage.objects;
+create policy "fotos_admin_leer" on storage.objects for select to authenticated using (bucket_id = 'productos');
 drop policy if exists "fotos_admin_subir" on storage.objects;
 create policy "fotos_admin_subir" on storage.objects for insert to authenticated with check (bucket_id = 'productos' and public.es_admin());
 drop policy if exists "fotos_admin_cambiar" on storage.objects;

@@ -114,7 +114,7 @@
       async subirFoto(file, id) {
         const blob = await reducirImagen(file, 1000, 0.85);
         const ruta = `${id}-${Date.now()}.jpg`;
-        const { error } = await sb.storage.from('productos').upload(ruta, blob, { contentType: 'image/jpeg', upsert: true });
+        const { error } = await sb.storage.from('productos').upload(ruta, blob, { contentType: 'image/jpeg', upsert: false });
         err(error);
         return sb.storage.from('productos').getPublicUrl(ruta).data.publicUrl;
       },
@@ -241,6 +241,9 @@
   let avisoT;
   function aviso(msg, tipo) {
     const t = $('#aviso'); t.textContent = msg; t.className = 'aviso show ' + (tipo || '');
+    const abierto = document.querySelector('dialog[open]');
+    (abierto || document.body).appendChild(t);                 // por encima de la ventana abierta
+    if (abierto && tipo === 'error') { const e = abierto.querySelector('.modal-error'); if (e) { e.textContent = msg; e.hidden = false; } }
     clearTimeout(avisoT); avisoT = setTimeout(() => t.classList.remove('show'), tipo === 'error' ? 6000 : 2600);
   }
 
@@ -684,6 +687,7 @@
     d.innerHTML = `<form method="dialog" class="modal-caja ${opts.ancho ? 'ancho' : ''}" novalidate>
       <header><h2>${titulo}</h2><button type="button" class="ico-btn" data-cerrar aria-label="Cerrar">✕</button></header>
       <div class="modal-cuerpo">${cuerpo}</div>
+      <p class="modal-error" role="alert" hidden></p>
       <footer>${opts.borrar ? `<button type="button" class="btn btn-ghost btn-sm peligro" data-borrar>${opts.borrar}</button>` : '<span></span>'}<div class="botones"><button type="button" class="btn btn-ghost" data-cerrar>${alGuardar ? 'Cancelar' : 'Cerrar'}</button>${alGuardar ? `<button type="submit" class="btn btn-primary">${opts.boton || 'Guardar'}</button>` : ''}</div></footer>
     </form>`;
     const f = $('form', d);
