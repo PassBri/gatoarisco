@@ -238,9 +238,9 @@
     try { await ST.borrar(t, id); DB[t] = DB[t].filter((x) => x.id !== id); indexar(); estado('Guardado', 'ok'); }
     catch (e) { estado('No se guardó', 'error'); aviso('No se pudo borrar: ' + e.message, 'error'); throw e; }
   }
-  let avisoT;
+  let avisoT, avisoEl;
   function aviso(msg, tipo) {
-    const t = $('#aviso'); t.textContent = msg; t.className = 'aviso show ' + (tipo || '');
+    const t = avisoEl || (avisoEl = document.getElementById('aviso')); t.textContent = msg; t.className = 'aviso show ' + (tipo || '');
     const abierto = document.querySelector('dialog[open]');
     (abierto || document.body).appendChild(t);                 // por encima de la ventana abierta
     if (abierto && tipo === 'error') { const e = abierto.querySelector('.modal-error'); if (e) { e.textContent = msg; e.hidden = false; } }
@@ -697,7 +697,7 @@
       e.preventDefault();
       if (!f.checkValidity()) { f.reportValidity(); return; }
       const b = $('button[type=submit]', f); b.disabled = true;
-      try { const r = await alGuardar(f); if (r !== false) { d.close(); render(); } } catch (err) { /* el aviso ya se mostró */ } finally { b.disabled = false; }
+      try { const r = await alGuardar(f); if (r !== false) { d.close(); render(); } } catch (err) { console.warn(err); } finally { b.disabled = false; }
     });
     if (opts.alAbrir) opts.alAbrir(f);
     d.showModal();
@@ -872,7 +872,7 @@
       <div class="tres"><div class="campo"><label for="p-precio">Precio de venta</label><input id="p-precio" inputmode="numeric" required value="${int(p.precio)}"></div>
         <div class="campo"><label for="p-antes">Precio antes (opcional)</label><input id="p-antes" inputmode="numeric" value="${p.precio_antes || ''}"></div>
         <div class="campo"><label for="p-costo">Costo</label><input id="p-costo" inputmode="numeric" value="${int(p.costo)}"></div></div>
-      <div class="tres">${nuevo ? '<div class="campo"><label for="p-stock">Existencias iniciales</label><input id="p-stock" type="number" min="0" value="0"></div>' : `<div class="campo"><label>Existencias</label><input disabled value="${stockDe(p.id)} (usa Ajustar)"></div>`}
+      <div class="tres">${nuevo ? '<div class="campo"><label for="p-stock">Existencias iniciales</label><input id="p-stock" type="number" min="0" value="0"></div>' : `<div class="campo"><label for="p-stock">Existencias</label><input id="p-stock" type="number" min="0" value="${stockDe(p.id)}"></div>`}
         <div class="campo"><label for="p-min">Avisar cuando queden</label><input id="p-min" type="number" min="0" value="${int(p.stock_min)}"></div>
         <div class="campo"><label for="p-prov">Proveedor</label><select id="p-prov"><option value="">—</option>${DB.proveedores.map((x) => `<option value="${x.id}"${x.id === p.proveedor_id ? ' selected' : ''}>${esc(x.nombre)}</option>`).join('')}</select></div></div>
       <div class="dos"><div class="campo"><label for="p-linea">Línea (opcional)</label><input id="p-linea" value="${esc(p.linea || '')}" placeholder="Gatos Orbitales"></div>
@@ -900,6 +900,10 @@
         variantes: ops.length ? { nombre: val(f, 'p-vnom') || 'Opción', opciones: ops } : null, limitado: val(f, 'p-lim') || null, preventa: val(f, 'p-pre') || null,
         activo: $('#p-activo', f).checked, destacado: $('#p-dest', f).checked, nuevo: $('#p-nuevo', f).checked, imagen,
       }));
+      if (!nuevo) {
+        const antes = stockDe(id), ahora = Math.max(0, int(val(f, 'p-stock')));
+        if (ahora !== antes) await guardar('ajustes_inventario', { id: nuevoId(), fecha: hoy(), producto_id: id, cantidad: ahora - antes, motivo: 'Conteo' });
+      }
       aviso(nuevo ? 'Producto creado' : 'Producto actualizado');
     }, {
       ancho: true, sinFoco: !nuevo,
