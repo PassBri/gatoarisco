@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@300;400&family=Saira:wght@200;300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/styles.css?v=202611111809">
+<link rel="stylesheet" href="assets/css/styles.css?v=202611121743">
 </head>
 <body data-page="inicio">
 <a class="sr-only" href="#main">Saltar al contenido</a>
@@ -153,12 +153,34 @@
     </div>
   </div>
 </section>
+
+<section class="section" id="contacto" style="padding-top:0">
+  <div class="wrap contacto">
+    <div>
+      <p class="eyebrow">Contacto</p>
+      <h2 class="h-section">¿Hablamos?</h2>
+      <p style="color:var(--text-2);max-width:42ch">Pregúntanos por un producto, un pedido, precios por mayor o el programa de embajadores. Te respondemos por WhatsApp o por correo, como prefieras.</p>
+      <p class="nota-contacto">Respondemos de lunes a sábado. Arisco, pero atento.</p>
+    </div>
+    <form class="panel brackets form-contacto" id="form-contacto" novalidate>
+      <div class="two">
+        <div class="field"><label for="c-nombre">Nombre</label><input id="c-nombre" name="nombre" required minlength="2" maxlength="80" autocomplete="name"></div>
+        <div class="field"><label for="c-contacto">Celular o correo</label><input id="c-contacto" name="contacto" required minlength="5" maxlength="120" autocomplete="email" placeholder="300 000 0000 o tu@correo.com"></div>
+      </div>
+      <div class="field"><label for="c-tipo">Sobre qué</label><select id="c-tipo" name="tipo"><option>Pregunta</option><option>Pedido</option><option>Mayoristas</option><option>Embajadores</option><option>Otro</option></select></div>
+      <div class="field"><label for="c-mensaje">Mensaje</label><textarea id="c-mensaje" name="mensaje" rows="4" required minlength="5" maxlength="2000"></textarea></div>
+      <input type="text" name="web" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
+      <button class="btn btn-primary" type="submit" style="width:100%">Enviar mensaje</button>
+      <p class="alert alert-mint" id="contacto-ok" hidden style="margin-top:12px"><span class="dot"></span>Recibimos tu mensaje. Te contactamos pronto.</p>
+    </form>
+  </div>
+</section>
 </main>
 <footer class="site-footer" id="site-footer"></footer>
 <nav class="bottom-nav" id="bottom-nav" aria-label="Navegación inferior"></nav>
-<script src="assets/js/config.js?v=202611111809"></script>
-<script src="assets/js/gato.js?v=202611111809"></script>
-<script src="assets/js/gato-corre.js?v=202611111809"></script>
-<script src="assets/js/app.js?v=202611111809"></script>
+<script src="assets/js/config.js?v=202611121743"></script>
+<script src="assets/js/gato.js?v=202611121743"></script>
+<script src="assets/js/gato-corre.js?v=202611121743"></script>
+<script src="assets/js/app.js?v=202611121743"></script>
 </body>
 </html>

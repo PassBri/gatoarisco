@@ -56,4 +56,10 @@ Esa clave es pública por diseño: la seguridad la ponen las reglas de `esquema.
 (los visitantes solo pueden leer el catálogo, sin costos ni proveedores).
 **Nunca** pegues aquí la clave `service_role` o `secret`.
 
+## 7. Bandeja de mensajes
+
+Para que el formulario de contacto del inicio guarde los mensajes, en **SQL Editor** pega
+[`mensajes.sql`](mensajes.sql) y toca **Run**. Los mensajes aparecen en el panel, en **Mensajes**.
+(Si creaste las tablas después de este cambio, `esquema.sql` ya la incluye.)
+
 Listo: entra a `https://passbri.github.io/gatoarisco/panel.html` con tu correo y contraseña.

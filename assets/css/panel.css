@@ -193,3 +193,13 @@ button.pchip { cursor: pointer; }
   body.imprimiendo .recibo { border: 0; }
 }
 .ico-btn:disabled { opacity: .25; cursor: default; pointer-events: none; }
+
+/* bandeja de mensajes */
+.nav-panel .cuenta { margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 99px; background: var(--amber); color: var(--night); font-family: var(--font-mono); font-size: 12px; display: inline-grid; place-items: center; }
+.mensajes { display: grid; gap: 12px; }
+.mensaje { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
+.mensaje.nuevo { border-color: var(--mint-line); box-shadow: inset 3px 0 0 var(--mint); }
+.mensaje header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mensaje header .nota { margin-left: auto; }
+.mensaje p { margin: 10px 0; white-space: normal; color: var(--text-2); }
+.mensaje footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; border-top: 1px dashed var(--line); padding-top: 10px; }

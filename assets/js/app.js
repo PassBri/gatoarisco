@@ -83,14 +83,13 @@
         <div style="display:flex;flex-direction:column;gap:10px;max-width:360px">
           <img src="assets/img/marca/gatoarisco-wordmark-menta.png" alt="Gatoarisco" width="125" height="34">
           <span>Estilo con garra. Pines, stickers, parches, ropa y accesorios.</span>
-          <small>Hecho en Colombia · envíos a todo el país</small>
         </div>
         <nav aria-label="Pie de página">
           <a href="tienda.html">Tienda</a>
           <a href="embajadores.html">Embajadores</a>
           ${CFG.fundacion ? '<a href="impacto.html">Fundación e impacto</a>' : ''}
           <a href="https://wa.me/${CFG.whatsapp}" rel="noopener">WhatsApp</a>
-          <a href="mailto:${CFG.correo}">${CFG.correo}</a>
+          <a href="index.html#contacto">Contacto</a>
           <a href="panel.html">Acceso</a>
         </nav>
       </div>`;
@@ -382,6 +381,31 @@
     NAV = NAV_TODO.filter(([href]) => CFG.fundacion || href !== 'impacto.html');
   }
 
+  /* ---------- formulario de contacto: llega a la bandeja del panel (o a WhatsApp si no hay Supabase) ---------- */
+  function contacto() {
+    const f = $('#form-contacto'); if (!f) return;
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!f.reportValidity()) return;
+      const d = Object.fromEntries(new FormData(f).entries());
+      if (d.web) return;                                      // trampa para robots
+      const datos = { nombre: d.nombre.trim(), contacto: d.contacto.trim(), tipo: d.tipo, mensaje: d.mensaje.trim() };
+      const b = $('button[type=submit]', f); b.disabled = true;
+      let ok = false;
+      if (SUPA) {
+        try {
+          const r = await fetch(`${CFG.supabaseUrl}/rest/v1/mensajes`, { method: 'POST', headers: { apikey: CFG.supabaseAnonKey, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(datos) });
+          ok = r.ok;
+        } catch (err) { ok = false; }
+      }
+      b.disabled = false;
+      if (ok) { f.reset(); $('#contacto-ok').hidden = false; toast('Mensaje enviado. El gato ya lo está leyendo.'); return; }
+      const txt = `Hola, Gatoarisco. Soy ${datos.nombre} (${datos.contacto}).\n${datos.tipo}: ${datos.mensaje}`;
+      window.open(`https://wa.me/${CFG.whatsapp}?text=${encodeURIComponent(txt)}`, '_blank', 'noopener');
+      toast('Abrimos WhatsApp con tu mensaje');
+    });
+  }
+
   /* ---------- arranque ---------- */
   ajustes().then(arrancar);
   function arrancar() {
@@ -393,6 +417,7 @@
   countdown();
   const run = { inicio: home, tienda, producto, carrito }[page];
   if (run) run().then(() => window.gatoMirar && gatoMirar()).catch(() => { const m = $('main'); if (m) m.insertAdjacentHTML('afterbegin', '<p class="wrap alert alert-amber" style="margin-top:20px">No pudimos cargar los productos. Recarga la página.</p>'); });
+  contacto();
   formToWhatsApp('#form-embajador', 'Hola, quiero ser embajador de Gatoarisco.');
   formToWhatsApp('#form-vendedor', 'Hola, quiero vender con la Fundación Gatoarisco.');
   }

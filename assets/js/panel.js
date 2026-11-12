@@ -25,6 +25,7 @@
   const GASTOS = ['Publicidad', 'Empaques', 'Envíos', 'Transporte', 'Arriendo', 'Servicios', 'Diseño', 'Comisiones bancarias', 'Impuestos', 'Otros'];
   const NIVELES = { explorador: 'Explorador', navegante: 'Navegante', comandante: 'Comandante' };
   const TABLAS = ['categorias', 'proveedores', 'productos', 'clientes', 'equipo', 'ventas', 'compras', 'gastos', 'ajustes_inventario', 'pagos_equipo'];
+  const OPCIONALES = ['mensajes'];   // tablas que pueden no existir todavía en Supabase
   const EMPRESA_BASE = { id: 1, nombre: 'Gatoarisco', nit: '', telefono: '', ciudad: '', correo: '', saldo_inicial: 0, tarifas: { explorador: 2000, navegante: 2500, comandante: 3000 }, pct_calle: 50, pct_fondo: 20, descuento_embajador: 10 };
 
   /* =================================================================
@@ -58,6 +59,7 @@
           Object.assign(db, await catalogoInicial());
           persistir();
         }
+        OPCIONALES.forEach((t) => { if (!db[t]) db[t] = []; });
         return JSON.parse(JSON.stringify(db));
       },
       async guardar(t, row) {
@@ -102,6 +104,7 @@
         const db = { empresa: emp.data || { ...EMPRESA_BASE }, ajustes: {} };
         (aj.data || []).forEach((a) => { db.ajustes[a.clave] = a.valor; });
         TABLAS.forEach((t, i) => { db[t] = listas[i]; });
+        for (const t of OPCIONALES) { try { db[t] = await todo(t); } catch (e) { db[t] = []; db.falta = (db.falta || []).concat(t); } }
         return db;
       },
       async guardar(t, row) { const { data, error } = await sb.from(t).upsert(limpiar(row)).select().single(); err(error); return data; },
@@ -308,6 +311,7 @@
         <section class="tarjeta ancha"><header><h2>Ventas de los últimos 30 días</h2><span class="nota">${money(Object.values(porDia).reduce((a, b) => a + b, 0))}</span></header>${barras(datos)}</section>
         <section class="tarjeta"><header><h2>Pendientes</h2></header>
           <div class="alertas">
+            ${alerta(DB.mensajes.filter((m) => !m.leido).length, 'mensajes sin leer', 'mensajes')}
             ${alerta(porCobrar.length, 'ventas por cobrar · ' + money(porCobrar.reduce((a, v) => a + tv(v).total, 0)), 'ventas', 'ambar')}
             ${alerta(porDespachar.length, 'pedidos por despachar', 'ventas', 'ambar')}
             ${alerta(bajos.length, 'productos con pocas existencias', 'inventario', 'ambar')}
@@ -443,6 +447,34 @@
         <td data-l="Orden"><button class="ico-btn" data-accion="cat-subir" data-id="${esc(c.id)}" aria-label="Subir" ${i === 0 ? 'disabled' : ''}>↑</button><button class="ico-btn" data-accion="cat-bajar" data-id="${esc(c.id)}" aria-label="Bajar" ${i === lista.length - 1 ? 'disabled' : ''}>↓</button></td>
         <td class="acciones"><button class="ico-btn" data-accion="editar-categoria" data-id="${esc(c.id)}" aria-label="Editar">✎</button></td>
       </tr>`).join('')}</tbody></table>` : vacio('Todavía no hay categorías. Crea la primera para empezar a ordenar la tienda.', 'nueva-categoria', 'Crear categoría')}`;
+    },
+  };
+
+  VISTAS.mensajes = {
+    titulo: 'Mensajes',
+    html() {
+      if ((DB.falta || []).includes('mensajes')) return `<div class="vacio"><p>Falta crear la bandeja en Supabase. Abre <b>SQL Editor</b>, pega el archivo <code>supabase/mensajes.sql</code> del repositorio y toca <b>Run</b>. Luego recarga el panel.</p></div>`;
+      const f = UI.filtros.msj || (UI.filtros.msj = { ver: 'todos' });
+      const lista = DB.mensajes.filter((m) => f.ver === 'todos' || (f.ver === 'sin-leer' ? !m.leido : !m.respondido)).sort((a, b) => String(b.creado).localeCompare(String(a.creado)));
+      const fecha = (c) => { const d = new Date(c); return isNaN(d) ? '' : d.toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); };
+      const esCorreo = (c) => /@/.test(c);
+      return `
+      <div class="filtros">${selector('f-msj', { todos: 'Todos', 'sin-leer': 'Sin leer', 'sin-responder': 'Sin responder' }, f.ver)}<span class="nota">${DB.mensajes.filter((m) => !m.leido).length} sin leer · ${DB.mensajes.length} en total</span></div>
+      ${lista.length ? `<div class="mensajes">${lista.map((m) => `
+        <article class="mensaje ${m.leido ? '' : 'nuevo'}">
+          <header><b>${esc(m.nombre)}</b>${chip(m.tipo, m.tipo === 'Pedido' || m.tipo === 'Mayoristas' ? 'ambar' : 'menta')}${m.respondido ? chip('Respondido', 'gris') : ''}<span class="nota">${fecha(m.creado)}</span></header>
+          <p>${esc(m.mensaje).replace(/\n/g, '<br>')}</p>
+          <footer>
+            <span class="nota">${esc(m.contacto)}</span>
+            <div class="botones">
+              ${esCorreo(m.contacto)
+                ? `<a class="btn btn-primary btn-sm" data-accion="msj-responder" data-id="${m.id}" href="mailto:${esc(m.contacto)}?subject=${encodeURIComponent('Gatoarisco · ' + m.tipo)}&body=${encodeURIComponent('Hola, ' + m.nombre + '.\n\n')}">Responder por correo</a>`
+                : `<a class="btn btn-primary btn-sm" data-accion="msj-responder" data-id="${m.id}" target="_blank" rel="noopener" href="https://wa.me/${esc(waNum(m.contacto))}?text=${encodeURIComponent('Hola, ' + m.nombre + '. Te escribimos de Gatoarisco por tu mensaje.')}">Responder por WhatsApp</a>`}
+              <button class="btn btn-ghost btn-sm" data-accion="msj-leido" data-id="${m.id}">${m.leido ? 'Marcar sin leer' : 'Marcar leído'}</button>
+              <button class="ico-btn" data-accion="borrar" data-t="mensajes" data-id="${m.id}" aria-label="Borrar">🗑</button>
+            </div>
+          </footer>
+        </article>`).join('')}</div>` : vacio(DB.mensajes.length ? 'No hay mensajes con este filtro.' : 'Todavía no hay mensajes. Llegan aquí desde el formulario de contacto del inicio de la tienda.')}`;
     },
   };
 
@@ -1004,6 +1036,8 @@
     'nueva-compra': () => formCompra(), 'editar-compra': (b) => formCompra(porId('compras', b.dataset.id)),
     'nuevo-producto': () => formProducto(), 'editar-producto': (b) => formProducto(prod(b.dataset.id)),
     'nuevo-ajuste': () => formAjuste(), ajustar: (b) => formAjuste(b.dataset.id), categorias: () => irA('categorias'), 'nueva-categoria': () => formCategoria(), 'editar-categoria': (b) => formCategoria(porId('categorias', b.dataset.id)), 'cat-subir': (b) => moverCategoria(b.dataset.id, -1), 'cat-bajar': (b) => moverCategoria(b.dataset.id, 1),
+    async 'msj-leido'(b) { const m = porId('mensajes', b.dataset.id); await guardar('mensajes', Object.assign({}, m, { leido: !m.leido })); render(); pintarContador(); },
+    async 'msj-responder'(b) { const m = porId('mensajes', b.dataset.id); window.open(b.href, b.target || '_self'); await guardar('mensajes', Object.assign({}, m, { leido: true, respondido: true })); render(); pintarContador(); },
     'nuevo-cliente': () => formCliente(), 'editar-cliente': (b) => formCliente(porId('clientes', b.dataset.id)),
     'nuevo-proveedor': () => formProveedor(), 'editar-proveedor': (b) => formProveedor(porId('proveedores', b.dataset.id)),
     'nuevo-gasto': () => formGasto(), 'editar-gasto': (b) => formGasto(porId('gastos', b.dataset.id)),
@@ -1026,6 +1060,10 @@
     async salir() { if (sb) await sb.auth.signOut(); ls.del('ga_panel_modo'); location.reload(); },
   };
 
+  function pintarContador() {
+    const n = (DB && DB.mensajes || []).filter((m) => !m.leido).length;
+    const b = document.querySelector('[data-cuenta-mensajes]'); if (b) { b.textContent = n; b.hidden = !n; }
+  }
   function irA(v) { if (!VISTAS[v]) v = 'resumen'; UI.vista = v; ls.set('ga_panel_vista', v); document.body.classList.remove('menu-abierto'); render(); window.scrollTo(0, 0); }
 
   function render() {
@@ -1037,7 +1075,7 @@
     $('#vista').innerHTML = V.html();
     // filtros que se escriben
     const enl = (id, grupo, k) => { const el = $('#' + id); if (!el) return; el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => { UI.filtros[grupo][k] = el.value; const pos = el.selectionStart; render(); const n = $('#' + id); if (n && n.tagName === 'INPUT') { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* nada */ } } }); };
-    enl('f-q', 'ventas', 'q'); enl('f-estado', 'ventas', 'estado'); enl('f-canal', 'ventas', 'canal'); enl('f-inv', 'inv', 'q'); enl('f-cat', 'inv', 'cat'); enl('f-cli', 'cli', 'q');
+    enl('f-q', 'ventas', 'q'); enl('f-estado', 'ventas', 'estado'); enl('f-canal', 'ventas', 'canal'); enl('f-inv', 'inv', 'q'); enl('f-cat', 'inv', 'cat'); enl('f-cli', 'cli', 'q'); enl('f-msj', 'msj', 'ver');
     const fe = $('#form-empresa');
     if (fe) fe.addEventListener('submit', async (e) => {
       e.preventDefault(); const f = fe;
@@ -1045,6 +1083,7 @@
       try { estado('Guardando…', 'ocupado'); DB.empresa = await ST.guardarEmpresa(emp); estado('Guardado', 'ok'); aviso('Ajustes guardados'); render(); } catch (err) { estado('No se guardó', 'error'); aviso('No se pudo guardar: ' + err.message, 'error'); }
     });
     if (window.gatoMirar) gatoMirar();
+    pintarContador();
   }
 
   document.addEventListener('click', async (e) => {
