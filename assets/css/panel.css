@@ -46,7 +46,7 @@
 .estado.error { color: #B4321F; } .estado.error i { background: #E5533D; }
 @keyframes latido { 50% { opacity: .3; } }
 @media (max-width: 700px) { .estado span { display: none; } }
-.vista { padding: 18px 16px 60px; max-width: 1280px; }
+.vista { padding: 18px 16px 60px; max-width: none; }
 @media (min-width: 700px) { .vista { padding: 24px 28px 60px; } }
 
 /* ---------- piezas ---------- */
@@ -208,8 +208,8 @@ dialog .aviso { position: fixed; }
 
 /* ---------- inventario editable tipo hoja ---------- */
 .g-ayuda { margin: 0 0 10px; }
-.grilla-caja { max-height: calc(100vh - 200px); max-height: calc(100dvh - 200px); overflow: auto; overscroll-behavior: contain; cursor: grab; border: 1px solid var(--line); background: #fff; -webkit-overflow-scrolling: touch; scrollbar-color: var(--mint, #73D8C7) transparent; }
-.tabla.grilla { min-width: 1640px; border: 0; border-radius: 0; overflow: visible; }
+.grilla-caja { overflow-x: auto; overflow-y: visible; cursor: grab; border: 1px solid var(--line); background: #fff; -webkit-overflow-scrolling: touch; scrollbar-color: var(--mint, #73D8C7) transparent; }
+.tabla.grilla { width: 100%; min-width: max-content; border: 0; border-radius: 0; overflow: visible; }
 .grilla th, .grilla td { white-space: nowrap; }
 .grilla td { padding: 6px 6px; }
 .grilla th { padding: 12px 8px; position: sticky; top: 0; z-index: 2; }
@@ -251,8 +251,24 @@ dialog .aviso { position: fixed; }
 .grilla-caja::-webkit-scrollbar { height: 14px; width: 12px; }
 .grilla-caja::-webkit-scrollbar-thumb { background: var(--mint, #73D8C7); border-radius: 8px; border: 3px solid #fff; }
 .grilla-caja::-webkit-scrollbar-track { background: #F3F6F9; }
-@media (max-width: 760px) { .grilla-caja { max-height: 75vh; cursor: auto; } }
+@media (max-width: 760px) { .grilla-caja { cursor: auto; } }
 .grilla th.g-c-foto, .grilla td.g-c-foto { width: 60px; min-width: 60px; max-width: 60px; box-sizing: border-box; padding-left: 8px; padding-right: 8px; overflow: hidden; }
 .grilla th.g-c-foto { letter-spacing: .06em; }
 .grilla .g-c-nombre { box-sizing: border-box; }
 @media (max-width: 760px) { .grilla th.g-c-foto, .grilla td.g-c-foto { width: 52px; min-width: 52px; max-width: 52px; padding-left: 5px; padding-right: 5px; } }
+
+/* ---------- hojas editables en todas las secciones ---------- */
+.grilla .g-c-1 { left: 0; box-shadow: 6px 0 8px -6px rgba(11, 26, 42, .18); }
+.grilla td.g-fija.g-c-1 { background: #fff; }
+.grilla tr.g-borrador td.g-c-1 { background: #F2FBF9; }
+.grilla input[type=date] { min-width: 140px; }
+.hoja td.der, .hoja td.num { font-family: var(--font-mono); font-size: 13px; }
+.grilla button.g-foto { border: 0; padding: 0; background: none; }
+.grilla .ico-btn { text-decoration: none; }
+.riel-scroll { overflow-x: auto; overflow-y: hidden; height: 14px; margin: 0 0 6px; scrollbar-color: var(--mint, #73D8C7) transparent; }
+.riel-scroll > div { height: 1px; }
+.riel-scroll::-webkit-scrollbar { height: 12px; }
+.riel-scroll::-webkit-scrollbar-thumb { background: var(--mint, #73D8C7); border-radius: 8px; }
+.riel-scroll::-webkit-scrollbar-track { background: #E8EEF3; border-radius: 8px; }
+.subt-fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 26px; }
+.subt-fila .subt { margin: 0; }

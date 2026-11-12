@@ -337,6 +337,290 @@
     },
   };
 
+  /* =================================================================
+     Hojas editables: agregar en fila, editar en la celda, duplicar y eliminar
+     ================================================================= */
+  UI.borr = {};
+  let CTX = {};
+  const HOJAS = {};
+  const clonar = (o) => JSON.parse(JSON.stringify(o));
+  const valorDe = (col, r) => (col.get ? col.get(r) : r[col.k]);
+  function celdaHoja(col, r, borr) {
+    const fija = col.fija ? ' g-fija g-c-1' : '';
+    if (col.calc || (col.editable && !col.editable(r, borr))) return `<td class="${col.der ? 'der num' : ''}${fija}">${col.calc ? col.calc(r, borr) : col.solo(r)}</td>`;
+    const v = valorDe(col, r); const ph = col.ph ? ` placeholder="${esc(col.ph)}"` : '';
+    const anc = col.ancho ? ` style="min-width:${col.ancho}px"` : '';
+    let h;
+    if (col.tipo === 'select') { const ops = typeof col.ops === 'function' ? col.ops(r) : col.ops; h = `<select data-c="${col.k}"${anc}>${col.vacio != null ? `<option value="">${esc(col.vacio)}</option>` : ''}${opciones(ops, v == null ? '' : v)}</select>`; }
+    else if (col.tipo === 'check') h = `<input type="checkbox" data-c="${col.k}" ${v ? 'checked' : ''} aria-label="${esc(col.l)}">`;
+    else if (col.tipo === 'date') h = `<input type="date" data-c="${col.k}" value="${esc(v || '')}">`;
+    else if (col.tipo === 'num') h = `<input data-c="${col.k}" inputmode="numeric" class="der" value="${v == null || v === '' ? '' : int(v)}"${ph}${anc}>`;
+    else h = `<input data-c="${col.k}" value="${esc(v == null ? '' : v)}"${ph}${anc}${col.lista ? ` list="${col.lista}" autocomplete="off"` : ''}${col.fija ? ' class="g-nombre"' : ''}>`;
+    return `<td class="${col.tipo === 'check' ? 'g-chk' : ''}${fija}">${h}</td>`;
+  }
+  function filaHoja(key, r, borr) {
+    const H = HOJAS[key];
+    const acc = borr
+      ? `<button class="btn btn-primary btn-sm" data-accion="h-crear" data-hoja="${key}">Guardar</button><button class="ico-btn" data-accion="h-cancelar" data-hoja="${key}" title="Cancelar" aria-label="Cancelar">✕</button>`
+      : `${H.extra ? H.extra(r) : ''}<button class="ico-btn" data-accion="h-duplicar" data-hoja="${key}" data-id="${esc(r.id)}" title="Duplicar" aria-label="Duplicar">⧉</button><button class="ico-btn peligro" data-accion="h-eliminar" data-hoja="${key}" data-id="${esc(r.id)}" title="Eliminar" aria-label="Eliminar">🗑</button>`;
+    return `<tr ${borr ? 'data-borrador class="g-borrador"' : `data-hid="${esc(r.id)}"${H.apagada && H.apagada(r) ? ' class="anulada"' : ''}`}>${H.cols.map((c) => celdaHoja(c, r, borr)).join('')}<td class="acciones"><div class="g-acc">${acc}</div></td></tr>`;
+  }
+  function hoja(key, filas) {
+    const H = HOJAS[key]; const b = UI.borr[key];
+    if (!filas.length && !b) return vacio(H.vacio, H.nuevo, H.etiqueta);
+    return `<div class="tabla-scroll grilla-caja"><table class="tabla grilla hoja" data-hoja="${key}"><thead><tr>${H.cols.map((c) => `<th class="${c.der || c.tipo === 'num' ? 'der' : ''}${c.fija ? ' g-fija g-c-1' : ''}">${c.l || ''}</th>`).join('')}<th></th></tr></thead><tbody>
+      ${b ? filaHoja(key, b, true) : ''}${filas.map((r) => filaHoja(key, r, false)).join('')}</tbody></table></div>`;
+  }
+  const ayudaHoja = '<p class="nota g-ayuda">Escribe directo en la tabla: cada celda se guarda sola al salir de ella. <b>Enter</b> baja a la fila siguiente. Para ver más columnas, <b>arrastra la tabla</b> hacia los lados, usa <b>Shift + rueda</b> o la barra de arriba.</p>';
+  function leerCelda(el, col) {
+    if (el.type === 'checkbox') return el.checked;
+    const v = el.value.trim();
+    if (col.tipo === 'num') return v === '' ? null : Math.max(0, int(v));
+    return v === '' ? null : v;
+  }
+  function ponerValor(col, r, v) { if (col.set) col.set(r, v); else r[col.k] = v; }
+  const colDe = (key, k) => HOJAS[key].cols.find((c) => c.k === k);
+  function hNuevo(key, extra) {
+    const H = HOJAS[key];
+    UI.borr[key] = Object.assign(H.base(), extra || {});
+    if (UI.vista !== H.vista) irA(H.vista); else render();
+    const el = $(`[data-hoja="${key}"] tr[data-borrador] [data-c]`); if (el) { el.focus(); el.scrollIntoView({ block: 'center' }); }
+  }
+  async function hCrear(key) {
+    const H = HOJAS[key]; const r = clonar(UI.borr[key]);
+    const tr = $(`[data-hoja="${key}"] tr[data-borrador]`);
+    if (tr) $$('[data-c]', tr).forEach((el) => { const col = colDe(key, el.dataset.c); ponerValor(col, r, leerCelda(el, col)); });
+    for (const c of H.cols) if (c.req && !valorDe(c, r)) { aviso(`Falta: ${c.l}`, 'error'); const el = tr && $(`[data-c="${c.k}"]`, tr); if (el) el.focus(); return; }
+    if (H.validar) { const m = H.validar(r); if (m) return aviso(m, 'error'); }
+    r.id = H.id ? H.id(r) : nuevoId();
+    if (H.antes) await H.antes(r);
+    const g = await guardar(H.t, r);
+    if (H.despues) await H.despues(g);
+    if (document.activeElement) document.activeElement.blur();
+    aviso(H.creado ? H.creado(g) : 'Agregado. Escribe el siguiente o pulsa ✕.');
+    hNuevo(key, H.siguiente ? H.siguiente(r) : null);
+  }
+  async function hCelda(el) {
+    const tabla = el.closest('[data-hoja]'); const key = tabla.dataset.hoja; const H = HOJAS[key];
+    const col = colDe(key, el.dataset.c); const tr = el.closest('tr'); const v = leerCelda(el, col);
+    const tras = () => new Promise((ok) => setTimeout(ok, 0)); // dejar que el cursor llegue a la siguiente celda
+    if (tr.hasAttribute('data-borrador')) { ponerValor(col, UI.borr[key], v); if (col.refresca) { await tras(); render(); } return; }
+    const orig = porId(H.t, tr.dataset.hid); if (!orig) return;
+    const r = clonar(orig);
+    if (col.req && !v) { el.value = valorDe(col, orig) || ''; return aviso(`${col.l} no puede quedar vacío`, 'error'); }
+    ponerValor(col, r, v);
+    if (JSON.stringify(r) === JSON.stringify(orig)) return;
+    if (H.antes) await H.antes(r, col.k);
+    const g = await guardar(H.t, r);
+    if (H.despues) await H.despues(g, col.k);
+    await tras(); render();
+    const td = $(`[data-hoja="${key}"] tr[data-hid="${g.id}"] [data-c="${col.k}"]`); if (td) { const c = td.closest('td'); c.classList.add('g-ok'); setTimeout(() => c.classList.remove('g-ok'), 900); }
+  }
+  async function hDuplicar(key, id) {
+    const H = HOJAS[key]; const r = clonar(porId(H.t, id));
+    delete r.numero; delete r.creado;
+    if (H.duplicar) H.duplicar(r);
+    r.id = H.id ? H.id(r) : nuevoId();
+    const g = await guardar(H.t, r); aviso('Copia creada.'); render();
+    const el = $(`[data-hoja="${key}"] tr[data-hid="${g.id}"] [data-c]`); if (el) { el.focus(); if (el.select) el.select(); el.scrollIntoView({ block: 'center' }); }
+  }
+  async function hEliminar(key, id) {
+    const H = HOJAS[key]; const r = porId(H.t, id);
+    const no = H.noBorrar && H.noBorrar(r); if (no) return aviso(no, 'error');
+    if (!(await confirmar(H.borrarMsg ? H.borrarMsg(r) : '¿Eliminar esta fila? No se puede deshacer.'))) return;
+    await borrar(H.t, id); if (H.alBorrar) H.alBorrar(r); aviso('Eliminado'); render();
+  }
+  document.addEventListener('change', async (e) => {
+    const el = e.target; if (!el.matches || !el.matches('.hoja [data-c]')) return;
+    try { await hCelda(el); } catch (err) { render(); }
+  });
+  document.addEventListener('keydown', (e) => {
+    const el = e.target; if (!el.matches || !el.matches('.hoja [data-c]')) return;
+    const tr = el.closest('tr'); const key = el.closest('[data-hoja]').dataset.hoja;
+    if (e.key === 'Escape' && tr.hasAttribute('data-borrador')) { UI.borr[key] = null; render(); return; }
+    if (e.key !== 'Enter' || el.tagName === 'SELECT') return;
+    e.preventDefault();
+    if (tr.hasAttribute('data-borrador')) { const col = colDe(key, el.dataset.c); ponerValor(col, UI.borr[key], leerCelda(el, col)); hCrear(key).catch(() => {}); return; }
+    const sig = tr.nextElementSibling; const d = sig && $(`[data-c="${el.dataset.c}"]`, sig);
+    if (d) { d.focus(); if (d.select) d.select(); } else el.blur();
+  });
+
+  // un solo producto por fila (ventas y compras); con varios se usa ✎
+  const unItem = (r, borr) => borr || (r.items || []).length <= 1;
+  const item0 = (r) => { if (!r.items || !r.items.length) r.items = [{ producto_id: '', nombre: '', cant: 1, precio: 0, costo: 0, variante: '' }]; return r.items[0]; };
+  const listaItems = (r) => `${(r.items || []).map((i) => `${int(i.cant)} × ${esc(i.nombre)}${i.variante ? ' (' + esc(i.variante) + ')' : ''}`).join('<br>')} <span class="nota">· ✎ para editar</span>`;
+  const opsProductos = () => Object.fromEntries(DB.productos.filter((p) => p.activo).map((p) => [p.id, p.nombre]));
+  const opsProductosDe = (r) => { const o = opsProductos(); (r.items || []).forEach((i) => { if (i.producto_id && !o[i.producto_id]) o[i.producto_id] = i.nombre; }); return o; };
+  const OPS_METODOS = Object.fromEntries(METODOS.map((m) => [m, m]));
+  async function clientePorNombre(nombre) {
+    if (!nombre) return null;
+    let c = DB.clientes.find((x) => x.nombre.toLowerCase() === nombre.toLowerCase());
+    if (!c) c = await guardar('clientes', { id: nuevoId(), nombre });
+    return c.id;
+  }
+
+  HOJAS.ventas = {
+    t: 'ventas', vista: 'ventas', nuevo: 'nueva-venta', etiqueta: 'Registrar una venta', vacio: 'No hay ventas con estos filtros.',
+    base: () => ({ fecha: hoy(), canal: 'whatsapp', items: [{ producto_id: '', nombre: '', cant: 1, precio: 0, costo: 0, variante: '' }], descuento: 0, envio: 0, metodo: 'Nequi', pago: 'pagado', entrega: 'por_despachar', anulada: false, cliente_id: null }),
+    cols: [
+      { l: 'N.º', fija: true, calc: (r, b) => (b ? '<span class="nota">Nueva</span>' : `<b>#${r.numero || '—'}</b>`) },
+      { k: 'fecha', l: 'Fecha', tipo: 'date' },
+      { k: 'cliente', l: 'Cliente', lista: 'lista-clientes', ph: 'Sin cliente', ancho: 170, get: (r) => (r._cliente != null ? r._cliente : (porId('clientes', r.cliente_id) || {}).nombre || ''), set: (r, v) => { r._cliente = v || ''; } },
+      { k: 'producto', l: 'Producto', tipo: 'select', vacio: '— Elige —', ancho: 190, refresca: true, ops: opsProductosDe, editable: unItem, solo: listaItems, get: (r) => ((r.items || [])[0] || {}).producto_id || '',
+        set: (r, v) => { const i = item0(r); if (i.producto_id === v) return; const p = prod(v); i.producto_id = v || ''; i.nombre = p ? p.nombre : ''; i.precio = p ? int(p.precio) : 0; i.costo = p ? int(p.costo) : 0; i.variante = ''; } },
+      { k: 'cant', l: 'Cant.', tipo: 'num', ancho: 70, refresca: true, editable: unItem, solo: () => '', get: (r) => ((r.items || [])[0] || {}).cant || 1, set: (r, v) => { item0(r).cant = Math.max(1, int(v)); } },
+      { k: 'precio', l: 'Precio', tipo: 'num', ancho: 100, refresca: true, editable: unItem, solo: () => '', get: (r) => ((r.items || [])[0] || {}).precio || 0, set: (r, v) => { item0(r).precio = int(v); } },
+      { k: 'canal', l: 'Canal', tipo: 'select', ops: CANALES },
+      { l: 'Total', der: true, calc: (r) => money(tv(r).total) },
+      { k: 'metodo', l: 'Método', tipo: 'select', ops: OPS_METODOS },
+      { k: 'pago', l: 'Pago', tipo: 'select', ops: { pagado: 'Pagado', pendiente: 'Por cobrar' } },
+      { k: 'entrega', l: 'Entrega', tipo: 'select', ops: ENTREGAS },
+      { k: 'nota', l: 'Nota', ancho: 180 },
+      { k: 'anulada', l: 'Anulada', tipo: 'check' },
+    ],
+    apagada: (r) => r.anulada,
+    validar: (r) => (!(r.items || []).some((i) => i.producto_id) ? 'Elige el producto vendido' : null),
+    async antes(r, k) { if (!k || k === 'cliente') { if (r._cliente != null) r.cliente_id = await clientePorNombre(r._cliente); } delete r._cliente; r.items = (r.items || []).filter((i) => i.producto_id); },
+    creado: (g) => `Venta #${g.numero || ''} registrada. Escribe la siguiente o pulsa ✕.`,
+    duplicar: (r) => { r.fecha = hoy(); r.anulada = false; },
+    borrarMsg: (r) => `¿Eliminar la venta #${r.numero}? Las existencias se devuelven. Si solo quieres que no cuente, mejor márcala como anulada.`,
+    extra: (r) => `<button class="ico-btn" data-accion="recibo" data-id="${r.id}" title="Recibo" aria-label="Recibo">🧾</button><button class="ico-btn" data-accion="editar-venta" data-id="${r.id}" title="Varios productos, descuento, vendedor y envío" aria-label="Editar todo">✎</button>`,
+  };
+
+  HOJAS.compras = {
+    t: 'compras', vista: 'compras', nuevo: 'nueva-compra', etiqueta: 'Registrar una compra', vacio: 'No hay compras en este periodo. Registra lo que le compras a tus proveedores y el inventario sube solo.',
+    base: () => ({ fecha: hoy(), proveedor_id: (DB.proveedores[0] || {}).id || null, items: [{ producto_id: '', nombre: '', cant: 1, costo: 0 }], flete: 0, pago: 'pagado', metodo: 'Transferencia' }),
+    cols: [
+      { l: 'N.º', fija: true, calc: (r, b) => (b ? '<span class="nota">Nueva</span>' : `<b>C-${r.numero || '—'}</b>`) },
+      { k: 'fecha', l: 'Fecha', tipo: 'date' },
+      { k: 'proveedor_id', l: 'Proveedor', tipo: 'select', vacio: '— Sin proveedor —', ops: () => Object.fromEntries(DB.proveedores.map((p) => [p.id, p.nombre])) },
+      { k: 'producto', l: 'Producto', tipo: 'select', vacio: '— Elige —', ancho: 190, refresca: true, ops: opsProductosDe, editable: unItem, solo: listaItems, get: (r) => ((r.items || [])[0] || {}).producto_id || '',
+        set: (r, v) => { const i = item0(r); if (i.producto_id === v) return; const p = prod(v); i.producto_id = v || ''; i.nombre = p ? p.nombre : ''; i.costo = p ? int(p.costo) : 0; delete i.precio; } },
+      { k: 'cant', l: 'Cant.', tipo: 'num', ancho: 70, refresca: true, editable: unItem, solo: () => '', get: (r) => ((r.items || [])[0] || {}).cant || 1, set: (r, v) => { item0(r).cant = Math.max(1, int(v)); } },
+      { k: 'costo', l: 'Costo unidad', tipo: 'num', ancho: 100, refresca: true, editable: unItem, solo: () => '', get: (r) => ((r.items || [])[0] || {}).costo || 0, set: (r, v) => { item0(r).costo = int(v); } },
+      { k: 'flete', l: 'Flete', tipo: 'num', ancho: 90, refresca: true },
+      { l: 'Total', der: true, calc: (r) => money(totCompra(r)) },
+      { k: 'metodo', l: 'Método', tipo: 'select', ops: OPS_METODOS },
+      { k: 'pago', l: 'Pago', tipo: 'select', ops: { pagado: 'Pagada', pendiente: 'Por pagar' } },
+      { k: 'nota', l: 'Nota', ancho: 180 },
+    ],
+    validar: (r) => (!(r.items || []).some((i) => i.producto_id) ? 'Elige el producto que llegó' : null),
+    antes(r) { r.items = (r.items || []).filter((i) => i.producto_id); r.flete = int(r.flete); },
+    async despues(g, k) { if (k && !['costo', 'producto'].includes(k)) return; for (const i of g.items || []) { const p = prod(i.producto_id); if (p && int(i.costo) && int(p.costo) !== int(i.costo)) await guardar('productos', Object.assign({}, p, { costo: int(i.costo), proveedor_id: g.proveedor_id || p.proveedor_id })); } },
+    creado: () => 'Compra registrada: las existencias subieron y el costo del producto quedó actualizado.',
+    duplicar: (r) => { r.fecha = hoy(); },
+    borrarMsg: (r) => `¿Eliminar la compra C-${r.numero}? Las existencias que sumó se restan.`,
+    extra: (r) => `<button class="ico-btn" data-accion="editar-compra" data-id="${r.id}" title="Varios productos" aria-label="Editar todo">✎</button>`,
+  };
+
+  HOJAS.clientes = {
+    t: 'clientes', vista: 'clientes', nuevo: 'nuevo-cliente', etiqueta: 'Agregar cliente', vacio: 'Aún no hay clientes. Se crean solos al registrar ventas, o agrégalos aquí.',
+    base: () => ({ nombre: '' }),
+    cols: [
+      { k: 'nombre', l: 'Cliente', fija: true, req: true, ph: 'Nombre del cliente', ancho: 200 },
+      { k: 'telefono', l: 'Celular', ph: '300 000 0000', ancho: 130 },
+      { k: 'ciudad', l: 'Ciudad', ancho: 130 },
+      { k: 'direccion', l: 'Dirección', ancho: 200 },
+      { k: 'correo', l: 'Correo', ancho: 190 },
+      { k: 'nota', l: 'Nota', ancho: 180 },
+      { l: 'Compras', der: true, calc: (r, b) => (b ? '—' : (CTX.st[r.id] || {}).n || 0) },
+      { l: 'Total comprado', der: true, calc: (r, b) => (b ? '—' : money((CTX.st[r.id] || {}).total || 0)) },
+      { l: 'Última compra', calc: (r, b) => (!b && (CTX.st[r.id] || {}).ult ? fechaCorta(CTX.st[r.id].ult) : '—') },
+    ],
+    duplicar: (r) => { r.nombre += ' (copia)'; },
+    borrarMsg: (r) => `¿Eliminar a ${r.nombre}? Sus ventas se conservan, pero quedan sin cliente.`,
+    extra: (r) => (r.telefono ? `<a class="ico-btn" href="https://wa.me/${esc(waNum(r.telefono))}" target="_blank" rel="noopener" title="Escribir por WhatsApp" aria-label="WhatsApp">💬</a>` : ''),
+  };
+
+  HOJAS.proveedores = {
+    t: 'proveedores', vista: 'proveedores', nuevo: 'nuevo-proveedor', etiqueta: 'Agregar proveedor', vacio: 'Registra a quién le compras: fabricantes de pines, bordados, estampados o importaciones.',
+    base: () => ({ nombre: '', tipo: 'fabricante' }),
+    cols: [
+      { k: 'nombre', l: 'Proveedor', fija: true, req: true, ph: 'Nombre', ancho: 200 },
+      { k: 'tipo', l: 'Tipo', tipo: 'select', ops: { fabricante: 'Fabricante', taller: 'Taller (bordado, estampado)', importacion: 'Importación', otro: 'Otro' } },
+      { k: 'contacto', l: 'Contacto', ancho: 150 },
+      { k: 'telefono', l: 'Celular', ancho: 130 },
+      { k: 'ciudad', l: 'Ciudad', ancho: 130 },
+      { k: 'nota', l: 'Nota', ph: 'Tiempos de entrega, mínimos…', ancho: 240 },
+      { l: 'Comprado', der: true, calc: (r, b) => (b ? '—' : money(CTX.tot[r.id] || 0)) },
+    ],
+    duplicar: (r) => { r.nombre += ' (copia)'; },
+    borrarMsg: (r) => `¿Eliminar a ${r.nombre}? Sus compras se conservan sin proveedor.`,
+    extra: (r) => (r.telefono ? `<a class="ico-btn" href="https://wa.me/${esc(waNum(r.telefono))}" target="_blank" rel="noopener" title="Escribir por WhatsApp" aria-label="WhatsApp">💬</a>` : ''),
+  };
+
+  HOJAS.gastos = {
+    t: 'gastos', vista: 'gastos', nuevo: 'nuevo-gasto', etiqueta: 'Registrar gasto', vacio: 'Registra publicidad, empaques, envíos y demás gastos para conocer tu utilidad real.',
+    base: () => ({ fecha: hoy(), categoria: 'Publicidad', descripcion: '', valor: null, metodo: 'Nequi' }),
+    cols: [
+      { k: 'fecha', l: 'Fecha', tipo: 'date', fija: true },
+      { k: 'categoria', l: 'Categoría', tipo: 'select', ops: Object.fromEntries(GASTOS.map((x) => [x, x])) },
+      { k: 'descripcion', l: 'Descripción', ph: '¿En qué se gastó?', ancho: 260 },
+      { k: 'valor', l: 'Valor', tipo: 'num', req: true, ph: '0', ancho: 110 },
+      { k: 'metodo', l: 'Método', tipo: 'select', ops: OPS_METODOS },
+    ],
+    siguiente: (r) => ({ fecha: r.fecha, categoria: r.categoria, metodo: r.metodo }),
+    duplicar: (r) => { r.fecha = hoy(); },
+    borrarMsg: (r) => `¿Eliminar el gasto de ${money(r.valor)}?`,
+  };
+
+  HOJAS.equipo = {
+    t: 'equipo', vista: 'equipo', nuevo: 'nueva-persona', etiqueta: 'Agregar persona', vacio: 'Agrega a tus embajadores y vendedores en calle para calcular sus comisiones.',
+    base: () => ({ nombre: '', tipo: 'embajador', nivel: 'explorador', codigo: null, telefono: null, activo: true }),
+    cols: [
+      { k: 'nombre', l: 'Persona', fija: true, req: true, ph: 'Nombre', ancho: 180 },
+      { k: 'tipo', l: 'Tipo', tipo: 'select', ops: { embajador: 'Embajador', calle: 'Vendedor en calle' } },
+      { k: 'nivel', l: 'Nivel', tipo: 'select', vacio: '—', ops: NIVELES },
+      { k: 'codigo', l: 'Código', ph: 'LAURA25', ancho: 110 },
+      { k: 'telefono', l: 'Celular', ancho: 130 },
+      { k: 'activo', l: 'Activo', tipo: 'check' },
+      { l: 'Ventas', der: true, calc: (r, b) => { const s = !b && CTX.sal[r.id]; return s ? `${s.ventas} · ${s.unidades} u.` : '—'; } },
+      { l: 'Generado', der: true, calc: (r, b) => (!b && CTX.sal[r.id] ? money(CTX.sal[r.id].generado) : '—') },
+      { l: 'Pagado', der: true, calc: (r, b) => (!b && CTX.sal[r.id] ? money(CTX.sal[r.id].pagado) : '—') },
+      { l: 'Saldo', der: true, calc: (r, b) => { const s = !b && CTX.sal[r.id]; return s ? chip(money(s.saldo), s.saldo > 0 ? 'ambar' : 'menta') : '—'; } },
+    ],
+    apagada: (r) => !r.activo,
+    antes(r) { r.codigo = r.codigo ? r.codigo.toUpperCase().replace(/\s+/g, '') : null; if (r.tipo === 'calle') r.nivel = null; else if (!r.nivel) r.nivel = 'explorador'; },
+    duplicar: (r) => { r.nombre += ' (copia)'; r.codigo = null; },
+    borrarMsg: (r) => `¿Eliminar a ${r.nombre}? Se borran también sus pagos registrados.`,
+    extra: (r) => { const s = CTX.sal[r.id]; return `${s && s.saldo > 0 ? `<button class="btn btn-primary btn-sm" data-accion="pagar-persona" data-id="${r.id}">Pagar</button>` : ''}${r.codigo ? `<button class="ico-btn" data-accion="copiar-enlace" data-codigo="${esc(r.codigo)}" title="Copiar enlace con descuento" aria-label="Copiar enlace">🔗</button>` : ''}`; },
+  };
+
+  HOJAS.pagos = {
+    t: 'pagos_equipo', vista: 'equipo', nuevo: 'nuevo-pago', etiqueta: 'Registrar pago', vacio: 'Aún no hay pagos de comisiones.',
+    base: () => ({ fecha: hoy(), persona_id: (DB.equipo[0] || {}).id || '', valor: null, metodo: 'Nequi' }),
+    cols: [
+      { k: 'fecha', l: 'Fecha', tipo: 'date', fija: true },
+      { k: 'persona_id', l: 'Persona', tipo: 'select', ops: () => Object.fromEntries(DB.equipo.map((p) => [p.id, p.nombre])) },
+      { k: 'valor', l: 'Valor', tipo: 'num', req: true, ph: '0', ancho: 110 },
+      { k: 'metodo', l: 'Método', tipo: 'select', ops: OPS_METODOS },
+    ],
+    validar: (r) => (!r.persona_id ? 'Elige la persona' : null),
+    creado: () => 'Pago registrado.', siguiente: () => null,
+    duplicar: (r) => { r.fecha = hoy(); },
+    borrarMsg: (r) => `¿Eliminar el pago de ${money(r.valor)}?`,
+  };
+
+  const idCategoria = (r) => { let id = slug(r.nombre), k = 2; while (porId('categorias', id)) id = slug(r.nombre) + '-' + k++; return id; };
+  const ordenSiguiente = () => DB.categorias.reduce((m, x) => Math.max(m, x.orden || 0), -1) + 1;
+  HOJAS.categorias = {
+    t: 'categorias', vista: 'categorias', nuevo: 'nueva-categoria', etiqueta: 'Crear categoría', vacio: 'Todavía no hay categorías. Crea la primera para empezar a ordenar la tienda.',
+    base: () => ({ nombre: '', detalle: null, imagen: null, orden: ordenSiguiente() }),
+    cols: [
+      { k: 'nombre', l: 'Categoría', fija: true, req: true, ph: 'Bolsos, Gorras, Tazas…', ancho: 180 },
+      { l: 'Foto', calc: (r, b) => (b ? '<span class="mini g-sinfoto">Foto<br>luego</span>' : `<button class="g-foto" data-accion="editar-categoria" data-id="${esc(r.id)}" title="Cambiar foto"><img class="mini" src="${esc(fotoCategoria(r))}" alt=""></button>`) },
+      { k: 'detalle', l: 'Descripción corta', ph: 'Bordados para coser o planchar', ancho: 280 },
+      { l: 'Productos', der: true, calc: (r, b) => (b ? '—' : CTX.cuenta[r.id] || 0) },
+      { l: 'Orden', calc: (r, b) => { if (b) return '—'; const l = categoriasOrdenadas(); const i = l.findIndex((c) => c.id === r.id); return `<button class="ico-btn" data-accion="cat-subir" data-id="${esc(r.id)}" aria-label="Subir" ${i === 0 ? 'disabled' : ''}>↑</button><button class="ico-btn" data-accion="cat-bajar" data-id="${esc(r.id)}" aria-label="Bajar" ${i === l.length - 1 ? 'disabled' : ''}>↓</button>`; } },
+    ],
+    id: idCategoria,
+    creado: (g) => `Categoría "${g.nombre}" creada. Escribe la siguiente o pulsa ✕.`,
+    duplicar: (r) => { r.nombre += ' (copia)'; r.orden = ordenSiguiente(); },
+    noBorrar: (r) => { const n = DB.productos.filter((p) => p.categoria_id === r.id).length; return n ? `No se puede eliminar: tiene ${n} productos. Pásalos primero a otra categoría en Inventario.` : null; },
+    borrarMsg: (r) => `¿Eliminar la categoría ${r.nombre}?`,
+    extra: (r) => `<button class="btn btn-ghost btn-sm" data-accion="producto-en-cat" data-id="${esc(r.id)}">+ Producto</button>`,
+  };
+
   VISTAS.ventas = {
     titulo: 'Ventas', boton: ['nueva-venta', 'Nueva venta'],
     html() {
@@ -361,18 +645,9 @@
         <span class="nota">${lista.length} ventas · ${money(sum)}</span>
         <button class="btn btn-ghost btn-sm" data-accion="csv-ventas">Exportar CSV</button>
       </div>
-      ${lista.length ? `<table class="tabla"><thead><tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Productos</th><th>Canal</th><th class="der">Total</th><th>Pago</th><th>Entrega</th><th></th></tr></thead><tbody>
-        ${lista.map((v) => { const t = tv(v); const c = porId('clientes', v.cliente_id); return `<tr class="${v.anulada ? 'anulada' : ''}">
-          <td data-l="N.º"><b>#${v.numero || '—'}</b></td>
-          <td data-l="Fecha">${fechaCorta(v.fecha)}</td>
-          <td data-l="Cliente">${c ? esc(c.nombre) : '<span class="nota">Sin cliente</span>'}</td>
-          <td data-l="Productos">${(v.items || []).map((i) => `${i.cant} × ${esc(i.nombre)}${i.variante ? ' (' + esc(i.variante) + ')' : ''}`).join('<br>')}</td>
-          <td data-l="Canal">${esc(CANALES[v.canal] || v.canal)}</td>
-          <td data-l="Total" class="der num">${money(t.total)}</td>
-          <td data-l="Pago">${v.anulada ? chip('Anulada', 'gris') : `<button class="pchip ${v.pago === 'pagado' ? 'menta' : 'ambar'}" data-accion="toggle-pago" data-id="${v.id}" title="Cambiar estado de pago">${v.pago === 'pagado' ? 'Pagado' : 'Por cobrar'}</button>`}</td>
-          <td data-l="Entrega">${v.anulada ? '' : `<select class="mini-sel" data-accion-cambio="entrega" data-id="${v.id}">${Object.entries(ENTREGAS).map(([k, l]) => `<option value="${k}"${v.entrega === k ? ' selected' : ''}>${l}</option>`).join('')}</select>`}</td>
-          <td class="acciones"><button class="ico-btn" data-accion="recibo" data-id="${v.id}" title="Recibo" aria-label="Recibo">🧾</button><button class="ico-btn" data-accion="editar-venta" data-id="${v.id}" title="Editar" aria-label="Editar">✎</button></td>
-        </tr>`; }).join('')}</tbody></table>` : vacio('No hay ventas con estos filtros.', 'nueva-venta', 'Registrar una venta')}`;
+      ${ayudaHoja}
+      <datalist id="lista-clientes">${DB.clientes.map((x) => `<option value="${esc(x.nombre)}">${esc(x.telefono || '')}</option>`).join('')}</datalist>
+      ${hoja('ventas', lista)}`;
     },
   };
 
@@ -385,15 +660,8 @@
       return `
       <div class="barra-sup">${periodoSel()}</div>
       <div class="kpis">${kpi('Comprado', money(tot), lista.length + ' compras')}${kpi('Por pagar', money(pend), '', pend ? 'mal' : '')}${kpi('Unidades recibidas', lista.reduce((a, c) => a + (c.items || []).reduce((s, i) => s + int(i.cant), 0), 0))}</div>
-      ${lista.length ? `<table class="tabla"><thead><tr><th>N.º</th><th>Fecha</th><th>Proveedor</th><th>Productos</th><th class="der">Total</th><th>Pago</th><th></th></tr></thead><tbody>
-        ${lista.map((c) => { const pv = porId('proveedores', c.proveedor_id); return `<tr>
-          <td data-l="N.º"><b>C-${c.numero || '—'}</b></td><td data-l="Fecha">${fechaCorta(c.fecha)}</td>
-          <td data-l="Proveedor">${pv ? esc(pv.nombre) : '<span class="nota">—</span>'}</td>
-          <td data-l="Productos">${(c.items || []).map((i) => `${i.cant} × ${esc(i.nombre)} <span class="nota">a ${money(i.costo)}</span>`).join('<br>')}</td>
-          <td data-l="Total" class="der num">${money(totCompra(c))}</td>
-          <td data-l="Pago"><button class="pchip ${c.pago === 'pagado' ? 'menta' : 'ambar'}" data-accion="toggle-pago-compra" data-id="${c.id}">${c.pago === 'pagado' ? 'Pagada' : 'Por pagar'}</button></td>
-          <td class="acciones"><button class="ico-btn" data-accion="editar-compra" data-id="${c.id}" aria-label="Editar">✎</button><button class="ico-btn" data-accion="borrar" data-t="compras" data-id="${c.id}" aria-label="Borrar">🗑</button></td>
-        </tr>`; }).join('')}</tbody></table>` : vacio('No hay compras en este periodo. Registra lo que le compras a tus proveedores y el inventario sube solo.', 'nueva-compra', 'Registrar una compra')}`;
+      ${ayudaHoja}
+      ${hoja('compras', lista)}`;
     },
   };
 
@@ -447,6 +715,7 @@
     const id = idLibre(o.nombre);
     const { stock } = o; delete o.stock;
     await guardar('productos', Object.assign({ id, atributos: {}, imagen: null, proveedor_id: null }, o, { stock_inicial: stock }));
+    if (document.activeElement) document.activeElement.blur();
     aviso(`${o.nombre} agregado. Escribe el siguiente o pulsa ✕.`);
     nuevoBorrador(o.categoria_id);
   }
@@ -550,17 +819,10 @@
     titulo: 'Categorías', boton: ['nueva-categoria', 'Nueva categoría'],
     html() {
       const lista = categoriasOrdenadas();
-      const cuenta = {}; DB.productos.forEach((p) => { if (p.activo) cuenta[p.categoria_id] = (cuenta[p.categoria_id] || 0) + 1; });
+      const cuenta = {}; DB.productos.forEach((p) => { if (p.activo) cuenta[p.categoria_id] = (cuenta[p.categoria_id] || 0) + 1; }); CTX = { cuenta };
       return `<p class="nota">Las categorías ordenan la tienda: aparecen como tarjetas en el inicio y como filtros en la tienda, en este orden.</p>
-      ${lista.length ? `<table class="tabla"><thead><tr><th></th><th>Categoría</th><th>Descripción corta</th><th class="der">Productos</th><th>Orden</th><th></th></tr></thead><tbody>
-      ${lista.map((c, i) => `<tr>
-        <td><img class="mini" src="${esc(fotoCategoria(c))}" alt=""></td>
-        <td data-l="Categoría"><b>${esc(c.nombre)}</b></td>
-        <td data-l="Descripción">${esc(c.detalle || '—')}</td>
-        <td data-l="Productos" class="der num">${cuenta[c.id] || 0}</td>
-        <td data-l="Orden"><button class="ico-btn" data-accion="cat-subir" data-id="${esc(c.id)}" aria-label="Subir" ${i === 0 ? 'disabled' : ''}>↑</button><button class="ico-btn" data-accion="cat-bajar" data-id="${esc(c.id)}" aria-label="Bajar" ${i === lista.length - 1 ? 'disabled' : ''}>↓</button></td>
-        <td class="acciones"><button class="btn btn-ghost btn-sm" data-accion="producto-en-cat" data-id="${esc(c.id)}">+ Producto</button><button class="ico-btn" data-accion="editar-categoria" data-id="${esc(c.id)}" aria-label="Editar">✎</button></td>
-      </tr>`).join('')}</tbody></table>` : vacio('Todavía no hay categorías. Crea la primera para empezar a ordenar la tienda.', 'nueva-categoria', 'Crear categoría')}`;
+      ${ayudaHoja}
+      ${hoja('categorias', lista)}`;
     },
   };
 
@@ -624,18 +886,12 @@
     html() {
       const f = UI.filtros.cli || (UI.filtros.cli = { q: '' }); const q = f.q.toLowerCase();
       const st = {}; DB.ventas.forEach((v) => { if (v.anulada || !v.cliente_id) return; const s = st[v.cliente_id] || (st[v.cliente_id] = { n: 0, total: 0, ult: '' }); s.n++; s.total += tv(v).total; if (v.fecha > s.ult) s.ult = v.fecha; });
+      CTX = { st };
       const lista = DB.clientes.filter((c) => !q || `${c.nombre} ${c.telefono || ''} ${c.ciudad || ''}`.toLowerCase().includes(q)).sort((a, b) => ((st[b.id] || {}).total || 0) - ((st[a.id] || {}).total || 0));
       return `
       <div class="filtros"><input type="search" id="f-cli" placeholder="Buscar por nombre, celular o ciudad" value="${esc(f.q)}"><span class="nota">${DB.clientes.length} clientes</span></div>
-      ${lista.length ? `<table class="tabla"><thead><tr><th>Cliente</th><th>Celular</th><th>Ciudad</th><th class="der">Compras</th><th class="der">Total comprado</th><th>Última compra</th><th></th></tr></thead><tbody>
-      ${lista.map((c) => { const s = st[c.id] || { n: 0, total: 0, ult: '' }; return `<tr>
-        <td data-l="Cliente"><b>${esc(c.nombre)}</b></td>
-        <td data-l="Celular">${c.telefono ? `<a href="https://wa.me/${esc(waNum(c.telefono))}" target="_blank" rel="noopener">${esc(c.telefono)}</a>` : '—'}</td>
-        <td data-l="Ciudad">${esc(c.ciudad || '—')}</td>
-        <td data-l="Compras" class="der num">${s.n}</td><td data-l="Total" class="der num">${money(s.total)}</td>
-        <td data-l="Última">${s.ult ? fechaCorta(s.ult) : '—'}</td>
-        <td class="acciones"><button class="ico-btn" data-accion="editar-cliente" data-id="${c.id}" aria-label="Editar">✎</button></td>
-      </tr>`; }).join('')}</tbody></table>` : vacio('Aún no hay clientes. Se crean solos al registrar ventas.', 'nuevo-cliente', 'Agregar cliente')}`;
+      ${ayudaHoja}
+      ${hoja('clientes', lista)}`;
     },
   };
 
@@ -643,40 +899,23 @@
     titulo: 'Proveedores', boton: ['nuevo-proveedor', 'Nuevo proveedor'],
     html() {
       const tot = {}; DB.compras.forEach((c) => { if (c.proveedor_id) tot[c.proveedor_id] = (tot[c.proveedor_id] || 0) + totCompra(c); });
-      return DB.proveedores.length ? `<table class="tabla"><thead><tr><th>Proveedor</th><th>Tipo</th><th>Contacto</th><th>Ciudad</th><th class="der">Comprado</th><th></th></tr></thead><tbody>
-      ${DB.proveedores.map((p) => `<tr>
-        <td data-l="Proveedor"><b>${esc(p.nombre)}</b>${p.nota ? `<br><span class="nota">${esc(p.nota)}</span>` : ''}</td>
-        <td data-l="Tipo">${esc(p.tipo || '—')}</td>
-        <td data-l="Contacto">${esc(p.contacto || '')}${p.telefono ? ` · <a href="https://wa.me/${esc(waNum(p.telefono))}" target="_blank" rel="noopener">${esc(p.telefono)}</a>` : ''}</td>
-        <td data-l="Ciudad">${esc(p.ciudad || '—')}</td>
-        <td data-l="Comprado" class="der num">${money(tot[p.id] || 0)}</td>
-        <td class="acciones"><button class="ico-btn" data-accion="editar-proveedor" data-id="${p.id}" aria-label="Editar">✎</button></td>
-      </tr>`).join('')}</tbody></table>` : vacio('Registra a quién le compras: fabricantes de pines, bordados, estampados o importaciones.', 'nuevo-proveedor', 'Agregar proveedor');
+      CTX = { tot };
+      return ayudaHoja + hoja('proveedores', DB.proveedores);
     },
   };
 
   VISTAS.equipo = {
     titulo: 'Equipo y comisiones', boton: ['nueva-persona', 'Nueva persona'],
     html() {
-      const sal = saldosEquipo(); const tar = DB.empresa.tarifas || {};
+      const sal = saldosEquipo(); const tar = DB.empresa.tarifas || {}; CTX = { sal };
       const total = Object.values(sal).reduce((a, x) => a + Math.max(0, x.saldo), 0);
       return `
       <div class="kpis">${kpi('Embajadores', DB.equipo.filter((p) => p.tipo === 'embajador' && p.activo).length)}${kpi('Vendedores en calle', DB.equipo.filter((p) => p.tipo === 'calle' && p.activo).length)}${kpi('Comisiones por pagar', money(total), 'solo de ventas ya pagadas', total ? 'mal' : '')}</div>
       <p class="nota">Embajadores: ${Object.entries(NIVELES).map(([k, n]) => `${n} ${money(tar[k])}`).join(' · ')} por unidad. Vendedores en calle: ${DB.empresa.pct_calle} % de la utilidad de cada venta. Se cambia en Ajustes.</p>
-      ${DB.equipo.length ? `<table class="tabla"><thead><tr><th>Persona</th><th>Tipo</th><th>Código</th><th class="der">Ventas</th><th class="der">Generado</th><th class="der">Pagado</th><th class="der">Saldo</th><th></th></tr></thead><tbody>
-      ${DB.equipo.map((p) => { const s = sal[p.id]; return `<tr class="${p.activo ? '' : 'anulada'}">
-        <td data-l="Persona"><b>${esc(p.nombre)}</b>${p.telefono ? `<br><a class="nota" href="https://wa.me/${esc(waNum(p.telefono))}" target="_blank" rel="noopener">${esc(p.telefono)}</a>` : ''}</td>
-        <td data-l="Tipo">${p.tipo === 'embajador' ? 'Embajador · ' + (NIVELES[p.nivel] || '') : 'Vendedor en calle'}</td>
-        <td data-l="Código">${p.codigo ? `<button class="pchip" data-accion="copiar-enlace" data-codigo="${esc(p.codigo)}" title="Copiar enlace con descuento">${esc(p.codigo)} ⧉</button>` : '—'}</td>
-        <td data-l="Ventas" class="der num">${s.ventas} · ${s.unidades} u.</td>
-        <td data-l="Generado" class="der num">${money(s.generado)}</td>
-        <td data-l="Pagado" class="der num">${money(s.pagado)}</td>
-        <td data-l="Saldo" class="der">${s.saldo > 0 ? chip(money(s.saldo), 'ambar') : chip(money(s.saldo), 'menta')}</td>
-        <td class="acciones">${s.saldo > 0 ? `<button class="btn btn-primary btn-sm" data-accion="pagar-persona" data-id="${p.id}">Pagar</button>` : ''}<button class="ico-btn" data-accion="editar-persona" data-id="${p.id}" aria-label="Editar">✎</button></td>
-      </tr>`; }).join('')}</tbody></table>` : vacio('Agrega a tus embajadores y vendedores en calle para calcular sus comisiones.', 'nueva-persona', 'Agregar persona')}
-      ${DB.pagos_equipo.length ? `<h3 class="subt">Pagos realizados</h3><table class="tabla"><thead><tr><th>Fecha</th><th>Persona</th><th class="der">Valor</th><th>Método</th><th></th></tr></thead><tbody>
-        ${DB.pagos_equipo.slice().sort((a, b) => b.fecha.localeCompare(a.fecha)).map((x) => `<tr><td data-l="Fecha">${fechaCorta(x.fecha)}</td><td data-l="Persona">${esc((porId('equipo', x.persona_id) || {}).nombre || '—')}</td><td data-l="Valor" class="der num">${money(x.valor)}</td><td data-l="Método">${esc(x.metodo || '')}</td><td class="acciones"><button class="ico-btn" data-accion="borrar" data-t="pagos_equipo" data-id="${x.id}" aria-label="Borrar">🗑</button></td></tr>`).join('')}
-      </tbody></table>` : ''}`;
+      ${ayudaHoja}
+      ${hoja('equipo', DB.equipo)}
+      <div class="subt-fila"><h3 class="subt">Pagos de comisiones</h3><button class="btn btn-ghost btn-sm" data-accion="nuevo-pago">+ Registrar pago</button></div>
+      ${hoja('pagos', DB.pagos_equipo.slice().sort((a, b) => b.fecha.localeCompare(a.fecha)))}`;
     },
   };
 
@@ -692,10 +931,8 @@
         <section class="tarjeta"><header><h2>Total</h2></header><div class="kpi grande"><b>${money(lista.reduce((a, g) => a + int(g.valor), 0))}</b><span>${lista.length} gastos · ${PERIODOS[UI.periodo]}</span></div></section>
         <section class="tarjeta"><header><h2>Por categoría</h2></header>${Object.keys(porCat).length ? listaBarras(Object.entries(porCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ etiqueta: k, valor: v }))) : '<p class="nota">Sin gastos en este periodo.</p>'}</section>
       </div>
-      ${lista.length ? `<table class="tabla"><thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th class="der">Valor</th><th>Método</th><th></th></tr></thead><tbody>
-      ${lista.map((g) => `<tr><td data-l="Fecha">${fechaCorta(g.fecha)}</td><td data-l="Categoría">${esc(g.categoria)}</td><td data-l="Descripción">${esc(g.descripcion || '')}</td><td data-l="Valor" class="der num">${money(g.valor)}</td><td data-l="Método">${esc(g.metodo || '')}</td>
-        <td class="acciones"><button class="ico-btn" data-accion="editar-gasto" data-id="${g.id}" aria-label="Editar">✎</button><button class="ico-btn" data-accion="borrar" data-t="gastos" data-id="${g.id}" aria-label="Borrar">🗑</button></td></tr>`).join('')}
-      </tbody></table>` : vacio('Registra publicidad, empaques, envíos y demás gastos para conocer tu utilidad real.', 'nuevo-gasto', 'Registrar gasto')}`;
+      ${ayudaHoja}
+      ${hoja('gastos', lista)}`;
     },
   };
 
@@ -1178,8 +1415,8 @@
     ir: (b) => irA(b.dataset.vista),
     periodo: (b) => { UI.periodo = b.dataset.p; render(); },
     anio: (b) => { UI.anio = +b.dataset.a; render(); },
-    'nueva-venta': () => formVenta(), 'editar-venta': (b) => formVenta(porId('ventas', b.dataset.id)),
-    'nueva-compra': () => formCompra(), 'editar-compra': (b) => formCompra(porId('compras', b.dataset.id)),
+    'nueva-venta': () => hNuevo('ventas'), 'editar-venta': (b) => formVenta(porId('ventas', b.dataset.id)),
+    'nueva-compra': () => hNuevo('compras'), 'editar-compra': (b) => formCompra(porId('compras', b.dataset.id)),
     'nuevo-producto': () => nuevoBorrador(), 'producto-en-cat': (b) => nuevoBorrador(b.dataset.id), 'editar-producto': (b) => formProducto(prod(b.dataset.id)),
     'g-crear': () => crearDesdeBorrador(), 'g-cancelar': () => { UI.borrador = null; render(); },
     async 'g-duplicar'(b) {
@@ -1199,7 +1436,7 @@
       for (const a of DB.ajustes_inventario.filter((x) => x.producto_id === p.id)) await borrar('ajustes_inventario', a.id);
       await borrar('productos', p.id); aviso('Producto eliminado'); render();
     },
-    'nuevo-ajuste': () => formAjuste(), ajustar: (b) => formAjuste(b.dataset.id), categorias: () => irA('categorias'), 'nueva-categoria': () => formCategoria(), 'editar-categoria': (b) => formCategoria(porId('categorias', b.dataset.id)), 'cat-subir': (b) => moverCategoria(b.dataset.id, -1), 'cat-bajar': (b) => moverCategoria(b.dataset.id, 1),
+    'nuevo-ajuste': () => formAjuste(), ajustar: (b) => formAjuste(b.dataset.id), categorias: () => irA('categorias'), 'nueva-categoria': () => hNuevo('categorias'), 'editar-categoria': (b) => formCategoria(porId('categorias', b.dataset.id)), 'cat-subir': (b) => moverCategoria(b.dataset.id, -1), 'cat-bajar': (b) => moverCategoria(b.dataset.id, 1),
     async 'pedido-pagado'(b) {
       const p = porId('pedidos', b.dataset.id);
       if (!(await confirmar(`¿Ya te llegaron ${money(p.total)} por Nequi con la referencia ${p.referencia}? Se registra la venta y baja el inventario.`))) return;
@@ -1214,10 +1451,12 @@
     async 'pedido-cancelar'(b) { const p = porId('pedidos', b.dataset.id); if (await confirmar(`¿Cancelar el pedido ${p.referencia}?`)) { await guardar('pedidos', Object.assign({}, p, { estado: 'cancelado' })); render(); pintarContador(); } },
     async 'msj-leido'(b) { const m = porId('mensajes', b.dataset.id); await guardar('mensajes', Object.assign({}, m, { leido: !m.leido })); render(); pintarContador(); },
     async 'msj-responder'(b) { const m = porId('mensajes', b.dataset.id); window.open(b.href, b.target || '_self'); await guardar('mensajes', Object.assign({}, m, { leido: true, respondido: true })); render(); pintarContador(); },
-    'nuevo-cliente': () => formCliente(), 'editar-cliente': (b) => formCliente(porId('clientes', b.dataset.id)),
-    'nuevo-proveedor': () => formProveedor(), 'editar-proveedor': (b) => formProveedor(porId('proveedores', b.dataset.id)),
-    'nuevo-gasto': () => formGasto(), 'editar-gasto': (b) => formGasto(porId('gastos', b.dataset.id)),
-    'nueva-persona': () => formPersona(), 'editar-persona': (b) => formPersona(porId('equipo', b.dataset.id)), 'pagar-persona': (b) => formPago(b.dataset.id),
+    'nuevo-cliente': () => hNuevo('clientes'), 'editar-cliente': (b) => formCliente(porId('clientes', b.dataset.id)),
+    'nuevo-proveedor': () => hNuevo('proveedores'), 'editar-proveedor': (b) => formProveedor(porId('proveedores', b.dataset.id)),
+    'nuevo-gasto': () => hNuevo('gastos'), 'editar-gasto': (b) => formGasto(porId('gastos', b.dataset.id)),
+    'nueva-persona': () => hNuevo('equipo'), 'editar-persona': (b) => formPersona(porId('equipo', b.dataset.id)), 'pagar-persona': (b) => hNuevo('pagos', { persona_id: b.dataset.id, valor: Math.max(0, saldosEquipo()[b.dataset.id].saldo) }), 'nuevo-pago': () => hNuevo('pagos'),
+    'h-crear': (b) => hCrear(b.dataset.hoja), 'h-cancelar': (b) => { UI.borr[b.dataset.hoja] = null; render(); },
+    'h-duplicar': (b) => hDuplicar(b.dataset.hoja, b.dataset.id), 'h-eliminar': (b) => hEliminar(b.dataset.hoja, b.dataset.id),
     recibo: (b) => recibo(b.dataset.id),
     async 'toggle-pago'(b) { const v = porId('ventas', b.dataset.id); await guardar('ventas', Object.assign({}, v, { pago: v.pago === 'pagado' ? 'pendiente' : 'pagado' })); render(); },
     async 'toggle-pago-compra'(b) { const c = porId('compras', b.dataset.id); await guardar('compras', Object.assign({}, c, { pago: c.pago === 'pagado' ? 'pendiente' : 'pagado' })); render(); },
@@ -1244,15 +1483,44 @@
   }
   function irA(v) { if (!VISTAS[v]) v = 'resumen'; UI.vista = v; ls.set('ga_panel_vista', v); document.body.classList.remove('menu-abierto'); render(); window.scrollTo(0, 0); }
 
+  // recordar en qué celda estabas para volver a ella después de guardar
+  function focoActual() {
+    const a = document.activeElement; if (!a || !a.closest || !a.closest('#vista')) return null;
+    const tr = a.closest('tr'); const campo = a.dataset.c ? `[data-c="${a.dataset.c}"]` : a.dataset.g ? `[data-g="${a.dataset.g}"]` : null;
+    if (!tr || !campo) return null;
+    const fila = tr.hasAttribute('data-borrador') ? 'tr[data-borrador]' : tr.dataset.hid ? `tr[data-hid="${tr.dataset.hid}"]` : tr.dataset.pid ? `tr[data-pid="${tr.dataset.pid}"]` : null;
+    const t = a.closest('[data-hoja]');
+    return fila && { sel: `${t ? `[data-hoja="${t.dataset.hoja}"] ` : ''}${fila} ${campo}`, valor: a.type === 'checkbox' ? null : a.value, pos: a.selectionStart };
+  }
+  function volverFoco(f) {
+    if (!f) return; const el = $(f.sel); if (!el) return;
+    if (f.valor != null && el.value !== f.valor && el.tagName === 'INPUT') el.value = f.valor;
+    el.focus({ preventScroll: true }); try { if (f.pos != null) el.setSelectionRange(f.pos, f.pos); } catch (e) { /* fecha o número */ }
+  }
+  // barra de desplazamiento también arriba de cada tabla ancha
+  function rieles() {
+    $$('#vista .grilla-caja').forEach((caja) => {
+      let riel = caja.previousElementSibling;
+      if (!riel || !riel.classList.contains('riel-scroll')) { riel = document.createElement('div'); riel.className = 'riel-scroll'; riel.innerHTML = '<div></div>'; caja.before(riel);
+        riel.addEventListener('scroll', () => { if (caja.scrollLeft !== riel.scrollLeft) caja.scrollLeft = riel.scrollLeft; });
+        caja.addEventListener('scroll', () => { if (riel.scrollLeft !== caja.scrollLeft) riel.scrollLeft = caja.scrollLeft; }); }
+      riel.firstChild.style.width = caja.scrollWidth + 'px';
+      riel.hidden = caja.scrollWidth <= caja.clientWidth + 2; riel.scrollLeft = caja.scrollLeft;
+    });
+  }
+  window.addEventListener('resize', () => rieles());
+
   function render() {
     const V = VISTAS[UI.vista];
     $('#titulo').textContent = V.titulo; document.title = V.titulo + ' · Panel Gatoarisco';
     $$('.nav-panel [data-vista]').forEach((a) => a.setAttribute('aria-current', a.dataset.vista === UI.vista ? 'page' : 'false'));
     const btn = $('#accion-principal');
     if (V.boton) { btn.hidden = false; btn.dataset.accion = V.boton[0]; $('span', btn).textContent = V.boton[1]; } else btn.hidden = true;
-    const gc = $('.grilla-caja'); const pos = gc ? [gc.scrollLeft, gc.scrollTop] : null;
+    const pos = $$('#vista .grilla-caja').map((c) => [c.scrollLeft, c.scrollTop]);
+    const foco = focoActual();
     $('#vista').innerHTML = V.html();
-    const gn = $('.grilla-caja'); if (gn && pos) { gn.scrollLeft = pos[0]; gn.scrollTop = pos[1]; }
+    $$('#vista .grilla-caja').forEach((c, i) => { if (pos[i]) { c.scrollLeft = pos[i][0]; c.scrollTop = pos[i][1]; } });
+    rieles(); volverFoco(foco);
     // filtros que se escriben
     const enl = (id, grupo, k) => { const el = $('#' + id); if (!el) return; el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => { UI.filtros[grupo][k] = el.value; const pos = el.selectionStart; render(); const n = $('#' + id); if (n && n.tagName === 'INPUT') { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* nada */ } } }); };
     enl('f-q', 'ventas', 'q'); enl('f-estado', 'ventas', 'estado'); enl('f-canal', 'ventas', 'canal'); enl('f-inv', 'inv', 'q'); enl('f-cat', 'inv', 'cat'); enl('f-cli', 'cli', 'q'); enl('f-msj', 'msj', 'ver'); enl('f-ped', 'ped', 'ver');
