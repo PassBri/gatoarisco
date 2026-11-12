@@ -446,7 +446,7 @@
         <td data-l="Descripción">${esc(c.detalle || '—')}</td>
         <td data-l="Productos" class="der num">${cuenta[c.id] || 0}</td>
         <td data-l="Orden"><button class="ico-btn" data-accion="cat-subir" data-id="${esc(c.id)}" aria-label="Subir" ${i === 0 ? 'disabled' : ''}>↑</button><button class="ico-btn" data-accion="cat-bajar" data-id="${esc(c.id)}" aria-label="Bajar" ${i === lista.length - 1 ? 'disabled' : ''}>↓</button></td>
-        <td class="acciones"><button class="ico-btn" data-accion="editar-categoria" data-id="${esc(c.id)}" aria-label="Editar">✎</button></td>
+        <td class="acciones"><button class="btn btn-ghost btn-sm" data-accion="producto-en-cat" data-id="${esc(c.id)}">+ Producto</button><button class="ico-btn" data-accion="editar-categoria" data-id="${esc(c.id)}" aria-label="Editar">✎</button></td>
       </tr>`).join('')}</tbody></table>` : vacio('Todavía no hay categorías. Crea la primera para empezar a ordenar la tienda.', 'nueva-categoria', 'Crear categoría')}`;
     },
   };
@@ -856,8 +856,8 @@
     });
   }
 
-  function formProducto(p) {
-    const nuevo = !p; p = p || { id: '', nombre: '', categoria_id: (DB.categorias[0] || {}).id, precio: 10000, costo: 0, stock_inicial: 0, stock_min: 3, atributos: {}, activo: true, arisquez: 3 };
+  function formProducto(p, catInicial) {
+    const nuevo = !p; p = p || { id: '', nombre: '', categoria_id: catInicial || (DB.categorias[0] || {}).id, precio: 10000, costo: 0, stock_inicial: 0, stock_min: 3, atributos: {}, activo: true, arisquez: 3 };
     const atr = Object.entries(p.atributos || {}).map(([k, v]) => `${k}: ${v}`).join('\n');
     let fotoNueva = null;
     modal(nuevo ? 'Nuevo producto' : esc(p.nombre), `
@@ -1062,7 +1062,7 @@
     anio: (b) => { UI.anio = +b.dataset.a; render(); },
     'nueva-venta': () => formVenta(), 'editar-venta': (b) => formVenta(porId('ventas', b.dataset.id)),
     'nueva-compra': () => formCompra(), 'editar-compra': (b) => formCompra(porId('compras', b.dataset.id)),
-    'nuevo-producto': () => formProducto(), 'editar-producto': (b) => formProducto(prod(b.dataset.id)),
+    'nuevo-producto': () => formProducto(), 'producto-en-cat': (b) => formProducto(null, b.dataset.id), 'editar-producto': (b) => formProducto(prod(b.dataset.id)),
     'nuevo-ajuste': () => formAjuste(), ajustar: (b) => formAjuste(b.dataset.id), categorias: () => irA('categorias'), 'nueva-categoria': () => formCategoria(), 'editar-categoria': (b) => formCategoria(porId('categorias', b.dataset.id)), 'cat-subir': (b) => moverCategoria(b.dataset.id, -1), 'cat-bajar': (b) => moverCategoria(b.dataset.id, 1),
     async 'pedido-pagado'(b) {
       const p = porId('pedidos', b.dataset.id);
