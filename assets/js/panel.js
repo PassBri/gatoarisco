@@ -397,6 +397,103 @@
     },
   };
 
+  const ARISQUEZ = { 1: '1 · Casi dócil', 2: '2 · Tímido', 3: '3 · Con carácter', 4: '4 · Muy arisco', 5: '5 · Indomable' };
+  const opciones = (o, v) => Object.entries(o).map(([k, t]) => `<option value="${esc(k)}"${String(k) === String(v) ? ' selected' : ''}>${esc(t)}</option>`).join('');
+  const margenDe = (p) => (int(p.costo) && int(p.precio) ? Math.round(((int(p.precio) - int(p.costo)) / int(p.precio)) * 100) + ' %' : '—');
+  function filaGrilla(p, cats) {
+    const b = !p; const d = b ? UI.borrador : p;
+    const s = b ? int(d.stock) : stockDe(p.id);
+    const inp = (k, v, extra) => `<input data-g="${k}" value="${esc(v == null ? '' : v)}" ${extra || ''}>`;
+    const num = (k, v, ph) => inp(k, v, `inputmode="numeric" class="der" placeholder="${ph || ''}"`);
+    const chk = (k, v) => `<input type="checkbox" data-g="${k}" ${v ? 'checked' : ''} aria-label="${k}">`;
+    return `<tr data-pid="${b ? '' : esc(p.id)}" ${b ? 'data-borrador class="g-borrador"' : p.activo ? '' : 'class="anulada"'}>
+      <td class="g-fija g-c-foto">${b ? '<span class="mini g-sinfoto">Foto<br>luego</span>' : `<label class="g-foto" title="Cambiar foto">${foto(p)}<input type="file" accept="image/*" hidden data-g-foto="${esc(p.id)}"></label>`}</td>
+      <td class="g-fija g-c-nombre">${inp('nombre', d.nombre, `placeholder="${b ? 'Escribe el nombre y pulsa Enter' : ''}" class="g-nombre"`)}</td>
+      <td><select data-g="categoria_id">${opciones(Object.fromEntries(categoriasOrdenadas().map((c) => [c.id, c.nombre])), d.categoria_id)}</select></td>
+      <td>${num('precio', int(d.precio))}</td>
+      <td>${num('precio_antes', d.precio_antes || '', '—')}</td>
+      <td class="${int(d.costo) ? '' : 'g-falta'}">${num('costo', int(d.costo) || '', 'Falta')}</td>
+      <td class="der num g-margen">${margenDe(d)}</td>
+      <td class="g-stock ${s <= 0 ? 'rojo' : s <= int(d.stock_min) ? 'ambar' : 'menta'}">${inp('stock', s, 'type="number" min="0" class="der"')}</td>
+      <td>${inp('stock_min', int(d.stock_min), 'type="number" min="0" class="der"')}</td>
+      <td class="der num">${b ? '—' : IDX.vendidos[p.id] || 0}</td>
+      <td class="g-chk">${chk('activo', d.activo)}</td>
+      <td class="g-chk">${chk('destacado', d.destacado)}</td>
+      <td class="g-chk">${chk('nuevo', d.nuevo)}</td>
+      <td>${inp('linea', d.linea || '', 'placeholder="—"')}</td>
+      <td><select data-g="arisquez">${opciones(ARISQUEZ, d.arisquez || 3)}</select></td>
+      <td class="acciones"><div class="g-acc">${b
+        ? '<button class="btn btn-primary btn-sm" data-accion="g-crear">Guardar</button><button class="ico-btn" data-accion="g-cancelar" title="Cancelar" aria-label="Cancelar">✕</button>'
+        : `<button class="ico-btn" data-accion="ajustar" data-id="${esc(p.id)}" title="Ajustar existencias con motivo" aria-label="Ajustar existencias">±</button><button class="ico-btn" data-accion="editar-producto" data-id="${esc(p.id)}" title="Ficha completa (descripción, variantes…)" aria-label="Ficha completa">✎</button><button class="ico-btn" data-accion="g-duplicar" data-id="${esc(p.id)}" title="Duplicar" aria-label="Duplicar">⧉</button><button class="ico-btn peligro" data-accion="g-eliminar" data-id="${esc(p.id)}" title="Eliminar" aria-label="Eliminar">🗑</button>`}</div></td>
+    </tr>`;
+  }
+  const idLibre = (nombre) => { let id = slug(nombre), k = 2; while (prod(id)) id = slug(nombre) + '-' + k++; return id; };
+  const valorCelda = (el) => (el.type === 'checkbox' ? el.checked : el.value.trim());
+  const NUMS = ['precio', 'costo', 'stock', 'stock_min', 'arisquez'];
+  function leerFila(tr) {
+    const o = {}; $$('[data-g]', tr).forEach((el) => { const k = el.dataset.g; const v = valorCelda(el); o[k] = NUMS.includes(k) ? Math.max(0, int(v)) : v; });
+    o.precio_antes = int(o.precio_antes) || null; o.linea = o.linea || null; return o;
+  }
+  function nuevoBorrador(cat) {
+    UI.filtros.inv = UI.filtros.inv || { q: '', cat: 'todas' };
+    UI.borrador = { nombre: '', categoria_id: cat || (UI.filtros.inv.cat !== 'todas' ? UI.filtros.inv.cat : (categoriasOrdenadas()[0] || {}).id), precio: 10000, costo: 0, stock: 0, stock_min: 3, activo: true, arisquez: 3 };
+    if (UI.vista !== 'inventario') irA('inventario'); else render();
+    const n = $('tr[data-borrador] .g-nombre'); if (n) { n.focus(); n.scrollIntoView({ block: 'center' }); }
+  }
+  async function crearDesdeBorrador() {
+    const tr = $('tr[data-borrador]'); if (!tr) return;
+    const o = leerFila(tr);
+    if (!o.nombre) { aviso('Escribe el nombre del producto', 'error'); $('.g-nombre', tr).focus(); return; }
+    const id = idLibre(o.nombre);
+    const { stock } = o; delete o.stock;
+    await guardar('productos', Object.assign({ id, atributos: {}, imagen: null, proveedor_id: null }, o, { stock_inicial: stock }));
+    aviso(`${o.nombre} agregado. Escribe el siguiente o pulsa ✕.`);
+    nuevoBorrador(o.categoria_id);
+  }
+  async function guardarCelda(el) {
+    const tr = el.closest('tr'); const k = el.dataset.g;
+    if (tr.hasAttribute('data-borrador')) { UI.borrador[k] = valorCelda(el); return; }
+    const p = prod(tr.dataset.pid); if (!p) return;
+    let v = valorCelda(el);
+    if (k === 'nombre' && !v) { el.value = p.nombre; return aviso('El nombre no puede quedar vacío', 'error'); }
+    if (k === 'stock') {
+      const antes = stockDe(p.id), ahora = Math.max(0, int(v)); el.value = ahora;
+      if (ahora === antes) return;
+      await guardar('ajustes_inventario', { id: nuevoId(), fecha: hoy(), producto_id: p.id, cantidad: ahora - antes, motivo: 'Conteo' });
+    } else {
+      if (NUMS.includes(k)) v = Math.max(0, int(v)); else if (k === 'precio_antes') v = int(v) || null; else if (k === 'linea') v = v || null;
+      if (p[k] === v || (p[k] == null && v === '')) return;
+      await guardar('productos', Object.assign({}, p, { [k]: v }));
+    }
+    const q = prod(p.id); const s = stockDe(p.id);
+    $('.g-margen', tr).textContent = margenDe(q);
+    $('.g-stock', tr).className = 'g-stock ' + (s <= 0 ? 'rojo' : s <= int(q.stock_min) ? 'ambar' : 'menta');
+    el.closest('td').classList.toggle('g-falta', !int(q.costo) && k === 'costo');
+    tr.classList.toggle('anulada', !q.activo);
+    const td = el.closest('td'); td.classList.add('g-ok'); setTimeout(() => td.classList.remove('g-ok'), 900);
+  }
+  document.addEventListener('change', async (e) => {
+    const el = e.target;
+    if (el.matches && el.matches('.grilla [data-g]')) { try { await guardarCelda(el); } catch (err) { render(); } return; }
+    if (el.matches && el.matches('[data-g-foto]')) {
+      const file = el.files[0]; if (!file) return; const p = prod(el.dataset.gFoto);
+      estado('Subiendo foto…', 'ocupado');
+      try { const imagen = await ST.subirFoto(file, p.id); await guardar('productos', Object.assign({}, p, { imagen })); aviso('Foto actualizada'); render(); }
+      catch (err) { estado('No se guardó', 'error'); aviso('No se pudo subir la foto: ' + err.message, 'error'); }
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    const el = e.target; if (!el.matches || !el.matches('.grilla [data-g]')) return;
+    const tr = el.closest('tr');
+    if (e.key === 'Escape' && tr.hasAttribute('data-borrador')) { UI.borrador = null; render(); return; }
+    if (e.key !== 'Enter' || el.tagName === 'SELECT') return;
+    e.preventDefault();
+    if (tr.hasAttribute('data-borrador')) { UI.borrador[el.dataset.g] = valorCelda(el); crearDesdeBorrador().catch(() => {}); return; }
+    let sig = tr.nextElementSibling; const k = el.dataset.g;
+    const destino = sig && $(`[data-g="${k}"]`, sig);
+    if (destino) { destino.focus(); if (destino.select) destino.select(); } else el.blur();
+  });
+
   VISTAS.inventario = {
     titulo: 'Inventario', boton: ['nuevo-producto', 'Nuevo producto'],
     html() {
@@ -413,18 +510,10 @@
         <button class="btn btn-ghost btn-sm" data-accion="nuevo-ajuste">Ajustar existencias</button>
         <button class="btn btn-ghost btn-sm" data-accion="categorias">Categorías</button>
       </div>
-      <table class="tabla"><thead><tr><th></th><th>Producto</th><th>Categoría</th><th class="der">Precio</th><th class="der">Costo</th><th class="der">Margen</th><th class="der">Existencias</th><th class="der">Vendidos</th><th></th></tr></thead><tbody>
-      ${lista.map((p) => { const s = stockDe(p.id); const m = p.precio ? Math.round(((p.precio - int(p.costo)) / p.precio) * 100) : 0; return `<tr class="${p.activo ? '' : 'anulada'}">
-        <td>${foto(p)}</td>
-        <td data-l="Producto"><b>${esc(p.nombre)}</b>${p.activo ? '' : ' ' + chip('Oculto', 'gris')}</td>
-        <td data-l="Categoría">${esc(cats[p.categoria_id] || '—')}</td>
-        <td data-l="Precio" class="der num">${money(p.precio)}</td>
-        <td data-l="Costo" class="der num">${int(p.costo) ? money(p.costo) : chip('Falta', 'ambar')}</td>
-        <td data-l="Margen" class="der num">${int(p.costo) ? m + ' %' : '—'}</td>
-        <td data-l="Existencias" class="der">${chip(s, s <= 0 ? 'rojo' : s <= int(p.stock_min) ? 'ambar' : 'menta')}</td>
-        <td data-l="Vendidos" class="der num">${IDX.vendidos[p.id] || 0}</td>
-        <td class="acciones"><button class="ico-btn" data-accion="ajustar" data-id="${p.id}" title="Ajustar existencias" aria-label="Ajustar existencias">±</button><button class="ico-btn" data-accion="editar-producto" data-id="${p.id}" aria-label="Editar">✎</button></td>
-      </tr>`; }).join('')}</tbody></table>
+      <p class="nota g-ayuda">Toca cualquier celda para editarla: se guarda sola al salir de la celda. <b>Enter</b> baja a la fila siguiente. Toca la foto para cambiarla. Si hay muchas columnas, desliza la tabla hacia la derecha.</p>
+      <div class="tabla-scroll grilla-caja"><table class="tabla grilla"><thead><tr><th class="g-fija g-c-foto">Foto</th><th class="g-fija g-c-nombre">Producto</th><th>Categoría</th><th class="der">Precio</th><th class="der">Precio antes</th><th class="der">Costo</th><th class="der">Margen</th><th class="der">Existencias</th><th class="der">Avisar en</th><th class="der">Vendidos</th><th>Visible</th><th>Destacado</th><th>Nuevo</th><th>Línea</th><th>Arisquez</th><th></th></tr></thead><tbody>
+      ${UI.borrador ? filaGrilla(null, cats) : ''}
+      ${lista.map((p) => filaGrilla(p, cats)).join('')}</tbody></table></div>
       <p class="nota" style="margin-top:14px">Las existencias se calculan solas: inicial + compras + ajustes − ventas. ${ST.modo === 'supabase' ? 'La tienda las muestra en tiempo real.' : 'En modo prueba la tienda no cambia.'}</p>`;
     },
   };
@@ -1070,7 +1159,25 @@
     anio: (b) => { UI.anio = +b.dataset.a; render(); },
     'nueva-venta': () => formVenta(), 'editar-venta': (b) => formVenta(porId('ventas', b.dataset.id)),
     'nueva-compra': () => formCompra(), 'editar-compra': (b) => formCompra(porId('compras', b.dataset.id)),
-    'nuevo-producto': () => formProducto(), 'producto-en-cat': (b) => formProducto(null, b.dataset.id), 'editar-producto': (b) => formProducto(prod(b.dataset.id)),
+    'nuevo-producto': () => nuevoBorrador(), 'producto-en-cat': (b) => nuevoBorrador(b.dataset.id), 'editar-producto': (b) => formProducto(prod(b.dataset.id)),
+    'g-crear': () => crearDesdeBorrador(), 'g-cancelar': () => { UI.borrador = null; render(); },
+    async 'g-duplicar'(b) {
+      const p = prod(b.dataset.id); const nombre = p.nombre + ' (copia)'; const id = idLibre(nombre);
+      const c = Object.assign({}, p, { id, nombre, stock_inicial: 0 }); delete c.creado; delete c.numero;
+      await guardar('productos', c); aviso('Copia creada con 0 existencias. Cámbiale el nombre.'); render();
+      const n = $(`tr[data-pid="${id}"] .g-nombre`); if (n) { n.focus(); n.select(); n.scrollIntoView({ block: 'center' }); }
+    },
+    async 'g-eliminar'(b) {
+      const p = prod(b.dataset.id);
+      const usa = (l) => (l || []).some((x) => (x.items || []).some((i) => i.producto_id === p.id));
+      if (usa(DB.ventas) || usa(DB.compras) || usa(DB.pedidos)) {
+        if (!(await confirmar(`${p.nombre} tiene ventas, compras o pedidos registrados. Para no dañar tus cuentas no se borra: se oculta de la tienda. ¿Ocultarlo?`))) return;
+        await guardar('productos', Object.assign({}, p, { activo: false })); aviso('Producto oculto de la tienda'); render(); return;
+      }
+      if (!(await confirmar(`¿Eliminar ${p.nombre}? No se puede deshacer.`))) return;
+      for (const a of DB.ajustes_inventario.filter((x) => x.producto_id === p.id)) await borrar('ajustes_inventario', a.id);
+      await borrar('productos', p.id); aviso('Producto eliminado'); render();
+    },
     'nuevo-ajuste': () => formAjuste(), ajustar: (b) => formAjuste(b.dataset.id), categorias: () => irA('categorias'), 'nueva-categoria': () => formCategoria(), 'editar-categoria': (b) => formCategoria(porId('categorias', b.dataset.id)), 'cat-subir': (b) => moverCategoria(b.dataset.id, -1), 'cat-bajar': (b) => moverCategoria(b.dataset.id, 1),
     async 'pedido-pagado'(b) {
       const p = porId('pedidos', b.dataset.id);
@@ -1105,7 +1212,7 @@
     async ejemplo(b) { b.disabled = true; estado('Cargando ejemplo…', 'ocupado'); try { await datosEjemplo(); aviso('Datos de ejemplo cargados'); irA('resumen'); } catch (e) { b.disabled = false; } },
     async reiniciar() { if (await confirmar('Se borran todos los datos de prueba de este navegador. ¿Continuar?')) { await ST.reiniciar(); location.reload(); } },
     menu: () => document.body.classList.toggle('menu-abierto'),
-    async salir() { if (sb) await sb.auth.signOut(); ls.del('ga_panel_modo'); location.reload(); },
+    async salir() { try { if (sb) await sb.auth.signOut(); } catch (e) { /* igual salimos */ } ls.del('ga_panel_modo'); location.href = 'index.html'; },
   };
 
   function pintarContador() {
