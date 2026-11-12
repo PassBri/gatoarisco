@@ -467,3 +467,20 @@ main { flex: 1; padding-bottom: 96px; }
 @media (min-width: 900px) { .contacto { grid-template-columns: 1fr 1.25fr; gap: 48px; } }
 .form-contacto { padding: 24px; position: relative; }
 .nota-contacto { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; color: var(--muted); }
+
+/* pago con Nequi */
+.pago-nequi { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 14px; background: #fff; border: 1px solid var(--line); margin: 6px 0 14px; }
+.pago-nequi b { display: block; } .pago-nequi span { font-size: 13px; color: var(--muted); }
+.pago-layout { display: grid; gap: 20px; align-items: start; }
+@media (min-width: 900px) { .pago-layout { grid-template-columns: 1.3fr 1fr; } }
+.pago-caja, .pago-resumen { padding: 24px; }
+.pago-total { text-align: center; padding: 18px; border-radius: 16px; background: var(--night); color: #fff; margin-bottom: 16px; }
+.pago-total small { display: block; font-family: var(--font-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #9FB3C8; }
+.pago-total b { display: block; font-family: var(--font-mono); font-weight: 400; font-size: clamp(34px, 6vw, 46px); color: var(--glow); }
+.pago-total span { font-size: 14px; color: #CFE3EC; } .pago-total strong { font-family: var(--font-mono); color: #fff; letter-spacing: .08em; }
+.pago-qr { display: grid; justify-items: center; gap: 6px; margin-bottom: 14px; } .pago-qr img { width: 210px; border-radius: 14px; background: #fff; padding: 8px; border: 1px solid var(--line); }
+.pago-qr span { font-size: 13px; color: var(--muted); }
+.pago-dato { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 12px 0; border-bottom: 1px dashed var(--line); }
+.pago-dato small { width: 100%; font-family: var(--font-mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.pago-dato b { font-family: var(--font-mono); font-weight: 400; font-size: 22px; flex: 1; }
+.pasos-pago { margin: 16px 0; padding-left: 20px; line-height: 1.8; color: var(--text-2); }

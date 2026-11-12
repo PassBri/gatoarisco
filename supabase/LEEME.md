@@ -62,4 +62,11 @@ Para que el formulario de contacto del inicio guarde los mensajes, en **SQL Edit
 [`mensajes.sql`](mensajes.sql) y toca **Run**. Los mensajes aparecen en el panel, en **Mensajes**.
 (Si creaste las tablas después de este cambio, `esquema.sql` ya la incluye.)
 
+## 8. Pedidos con pago Nequi
+
+Para que los pedidos de la tienda lleguen al panel, en **SQL Editor** pega
+[`pedidos.sql`](pedidos.sql) y toca **Run**. Aparecen en el panel, en **Pedidos web**.
+En `assets/js/config.js` escribe tu número de Nequi (`nequi`), el nombre del titular (`nequiTitular`)
+y el valor del envío (`envioValor`).
+
 Listo: entra a `https://passbri.github.io/gatoarisco/panel.html` con tu correo y contraseña.

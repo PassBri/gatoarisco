@@ -11,7 +11,7 @@ Funciona en celular y computador, y se puede instalar en el celular como app (PW
 - Tienda con filtros por categoría, búsqueda y orden por precio.
 - Página de producto con variantes (acabado, talla), cantidad, existencias y productos relacionados.
 - Carrito guardado en el navegador, código de embajador con descuento y envío gratis desde un monto.
-- El pedido se envía por WhatsApp con el detalle completo (el pago en línea con Wompi llega en la siguiente fase).
+- Pago con **Nequi**: el carrito guarda el pedido con una referencia (GA-XXXXX) y lleva al cliente a `pago.html` con el valor, el número Nequi y los pasos; el comprobante se envía por WhatsApp y el pago se confirma en el panel (Pedidos web).
 - Página de Embajadores (3 niveles).
 - Fundación Gatoarisco (Fondo de Protección Social): ya está construida pero **oculta**.
   Se muestra u oculta con un clic desde Ajustes en el panel.
@@ -37,7 +37,7 @@ La guía para conectarlo está en [`supabase/LEEME.md`](supabase/LEEME.md).
 
 | Qué quieres cambiar | Archivo |
 |---|---|
-| WhatsApp, correo, envío gratis, descuento de embajador, fecha del drop | `assets/js/config.js` |
+| WhatsApp, número Nequi y titular, valor del envío, envío gratis, descuento de embajador, fecha del drop | `assets/js/config.js` |
 | Productos, precios, existencias, variantes, categorías | el panel (con Supabase) o `data/productos.json` |
 | Conexión con Supabase | `assets/js/config.js` (ver `supabase/LEEME.md`) |
 | Imágenes de productos | `assets/img/productos/` (mismo nombre que el `id` del producto) |

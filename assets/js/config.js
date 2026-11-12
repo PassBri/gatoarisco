@@ -6,6 +6,13 @@ window.GATOARISCO = {
   instagram: 'https://instagram.com/',
   // Envío gratis desde este valor (pesos colombianos).
   envioGratisDesde: 60000,
+  // Valor del envío cuando el pedido no llega al envío gratis (valor de ejemplo: cámbialo).
+  envioValor: 10000,
+  // Pago con Nequi: número que recibe los pagos, nombre del titular como aparece en Nequi
+  // y, si quieres, la imagen de tu QR de Nequi Negocios (súbela a assets/img/pago/nequi-qr.png).
+  nequi: '3000000000',
+  nequiTitular: 'Gatoarisco',
+  nequiQR: '',
   // Descuento para quien compra con el código de un embajador (porcentaje).
   descuentoEmbajador: 10,
   // Fecha y hora en que se abre el próximo lanzamiento (drop), hora de Colombia.

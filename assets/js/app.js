@@ -284,6 +284,50 @@
     if (rel) rel.innerHTML = D.productos.filter((x) => x.categoria === p.categoria && x.id !== p.id).slice(0, 4).map(card).join('');
   }
 
+  function pago() {
+    const root = $('#pago'); if (!root) return;
+    const p = store.get('ga_pedido', null); const ref = params.get('ref');
+    if (!p || (ref && p.referencia !== ref)) {
+      root.innerHTML = `<div class="empty">${window.gatoSVG ? gatoSVG('grande') : ''}<p>No encontramos ese pedido en este dispositivo. Si ya pagaste, escríbenos con tu referencia.</p><a class="btn btn-primary" href="https://wa.me/${CFG.whatsapp}" rel="noopener">Escribir por WhatsApp</a></div>`;
+      return;
+    }
+    const num = String(CFG.nequi || '').replace(/\D/g, '');
+    const numBonito = num.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
+    const lineas = (p.items || []).map((i) => `• ${i.cant} × ${i.nombre}${i.variante ? ' (' + i.variante + ')' : ''} — ${money(i.cant * i.precio)}`);
+    const msg = ['¡Hola, Gatoarisco! Ya pagué mi pedido con Nequi.', '', `Referencia: ${p.referencia}`, `Valor pagado: ${money(p.total)}`, '', ...lineas, '', `Nombre: ${p.nombre}`, `Celular: ${p.telefono}`, `Ciudad: ${p.ciudad}`, `Dirección: ${p.direccion}`, p.nota ? `Notas: ${p.nota}` : '', '', 'Te adjunto el comprobante.'].filter((l, i, a) => l !== '' || a[i - 1] !== '').join('\n');
+    root.innerHTML = `
+      <div class="pago-layout">
+        <div class="panel brackets pago-caja">
+          <div class="pago-total"><small>Valor a enviar</small><b>${money(p.total)}</b><span>Referencia <strong>${esc(p.referencia)}</strong></span></div>
+          ${CFG.nequiQR ? `<div class="pago-qr"><img src="${esc(CFG.nequiQR)}" alt="Código QR de Nequi de Gatoarisco"><span>Escanéalo desde la app Nequi</span></div>` : ''}
+          <div class="pago-dato"><small>Número Nequi</small><b>${esc(numBonito)}</b><button type="button" class="btn btn-ghost btn-sm" data-copiar="${esc(num)}">Copiar número</button></div>
+          <div class="pago-dato"><small>A nombre de</small><b>${esc(CFG.nequiTitular || '')}</b></div>
+          <div class="pago-dato"><small>Valor exacto</small><b>${money(p.total)}</b><button type="button" class="btn btn-ghost btn-sm" data-copiar="${p.total}">Copiar valor</button></div>
+          <ol class="pasos-pago">
+            <li>Abre tu app <b>Nequi</b> y toca <b>Envía</b>.</li>
+            <li>Escribe el número <b>${esc(numBonito)}</b> y el valor <b>${money(p.total)}</b>.</li>
+            <li>En el mensaje del envío escribe tu referencia <b>${esc(p.referencia)}</b>.</li>
+            <li>Toma captura del comprobante y tócanos el botón de abajo.</li>
+          </ol>
+          <a class="btn btn-primary" style="width:100%" href="https://wa.me/${CFG.whatsapp}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Ya pagué · enviar comprobante</a>
+          <p class="note" style="margin:10px 0 0">Apenas confirmemos el pago te avisamos y despachamos tu pedido.</p>
+        </div>
+        <aside class="panel brackets pago-resumen">
+          <h2 class="h-section" style="font-size:18px;margin:0 0 10px">Tu pedido</h2>
+          ${(p.items || []).map((i) => `<div class="summary-row"><span>${i.cant} × ${esc(i.nombre)}${i.variante ? ' · ' + esc(i.variante) : ''}</span><span>${money(i.cant * i.precio)}</span></div>`).join('')}
+          ${p.descuento ? `<div class="summary-row"><span>Código ${esc(p.codigo || '')}</span><span>− ${money(p.descuento)}</span></div>` : ''}
+          <div class="summary-row"><span>Envío</span><span>${p.envio ? money(p.envio) : 'Gratis'}</span></div>
+          <div class="summary-row total"><span>Total</span><span>${money(p.total)}</span></div>
+          <p class="note" style="margin-top:12px">Envío a: ${esc(p.nombre)} · ${esc(p.ciudad)} · ${esc(p.direccion)}</p>
+        </aside>
+      </div>`;
+    root.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-copiar]'); if (!b) return;
+      const t = b.dataset.copiar;
+      (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Copiado: ' + t), () => toast(t));
+    });
+  }
+
   async function carrito() {
     const D = await data();
     const list = $('#cart-list'), sum = $('#cart-summary'), form = $('#checkout');
@@ -297,7 +341,8 @@
       const ref = refInput.value.trim();
       const descuento = ref ? Math.round(subtotal * (CFG.descuentoEmbajador / 100)) : 0;
       const envioGratis = subtotal - descuento >= CFG.envioGratisDesde;
-      return { ls, subtotal, descuento, envioGratis, total: subtotal - descuento, ref };
+      const envio = envioGratis ? 0 : (CFG.envioValor || 0);
+      return { ls, subtotal, descuento, envioGratis, envio, total: subtotal - descuento + envio, ref };
     }
     function render() {
       const t = totals();
@@ -319,9 +364,9 @@
       $('#s-subtotal').textContent = money(t.subtotal);
       $('#s-desc-row').hidden = !t.descuento;
       $('#s-desc').textContent = '− ' + money(t.descuento);
-      $('#s-envio').textContent = t.envioGratis ? 'Gratis' : 'Se cotiza por WhatsApp';
+      $('#s-envio').textContent = t.envioGratis ? 'Gratis' : money(t.envio);
       $('#s-total').textContent = money(t.total);
-      const falta = CFG.envioGratisDesde - t.total;
+      const falta = CFG.envioGratisDesde - (t.subtotal - t.descuento);
       $('#s-free').textContent = t.envioGratis ? '¡Tu envío es gratis!' : `Te faltan ${money(falta)} para el envío gratis.`;
     }
     list.addEventListener('click', (e) => {
@@ -331,24 +376,28 @@
       if (b) { const it = Cart.items().find((i) => i.key === b.dataset.k); if (it) { Cart.setQty(it.key, it.qty + Number(b.dataset.d)); render(); } }
     });
     refInput.addEventListener('input', () => { store.set('ga_ref', refInput.value.trim().toUpperCase()); render(); });
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!form.reportValidity()) return;
       const t = totals(); const f = new FormData(form);
-      const msg = [
-        '¡Hola, Gatoarisco! Quiero hacer este pedido:', '',
-        ...t.ls.map((i) => `• ${i.qty} × ${i.p.nombre}${i.variante ? ' (' + i.variante + ')' : ''} — ${money(i.p.precio * i.qty)}`), '',
-        `Subtotal: ${money(t.subtotal)}`,
-        t.descuento ? `Código de embajador ${t.ref}: −${money(t.descuento)}` : '',
-        `Total productos: ${money(t.total)}`,
-        `Envío: ${t.envioGratis ? 'gratis' : 'por cotizar'}`, '',
-        `Nombre: ${f.get('nombre')}`, `Teléfono: ${f.get('telefono')}`,
-        `Ciudad: ${f.get('ciudad')}`, `Dirección: ${f.get('direccion')}`,
-        f.get('notas') ? `Notas: ${f.get('notas')}` : '',
-        `Pago preferido: ${f.get('pago')}`,
-      ].filter((l, idx, arr) => l !== '' || arr[idx - 1] !== '').join('\n');
-      window.open(`https://wa.me/${CFG.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
-      toast('Pedido lanzado. El gato vigila que llegue.');
+      const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const referencia = 'GA-' + Array.from({ length: 5 }, () => letras[Math.floor(Math.random() * letras.length)]).join('');
+      const pedido = {
+        referencia, nombre: f.get('nombre').trim(), telefono: f.get('telefono').trim(), ciudad: f.get('ciudad').trim(), direccion: f.get('direccion').trim(), nota: (f.get('notas') || '').trim() || null,
+        items: t.ls.map((i) => ({ producto_id: i.p.id, nombre: i.p.nombre, variante: i.variante || '', cant: i.qty, precio: i.p.precio })),
+        subtotal: t.subtotal, descuento: t.descuento, envio: t.envio, total: t.total, codigo: t.ref || null,
+      };
+      const b = $('button[type=submit]', form); b.disabled = true; b.textContent = 'Guardando tu pedido…';
+      let guardado = false;
+      if (SUPA) {
+        try {
+          const r = await fetch(`${CFG.supabaseUrl}/rest/v1/pedidos`, { method: 'POST', headers: { apikey: CFG.supabaseAnonKey, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(pedido) });
+          guardado = r.ok;
+        } catch (err) { guardado = false; }
+      }
+      store.set('ga_pedido', Object.assign({ guardado, fecha: new Date().toISOString() }, pedido));
+      Cart.clear();
+      location.href = 'pago.html?ref=' + encodeURIComponent(referencia);
     });
     render();
   }
@@ -418,6 +467,7 @@
   const run = { inicio: home, tienda, producto, carrito }[page];
   if (run) run().then(() => window.gatoMirar && gatoMirar()).catch(() => { const m = $('main'); if (m) m.insertAdjacentHTML('afterbegin', '<p class="wrap alert alert-amber" style="margin-top:20px">No pudimos cargar los productos. Recarga la página.</p>'); });
   contacto();
+  pago();
   formToWhatsApp('#form-embajador', 'Hola, quiero ser embajador de Gatoarisco.');
   formToWhatsApp('#form-vendedor', 'Hola, quiero vender con la Fundación Gatoarisco.');
   }

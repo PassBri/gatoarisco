@@ -25,7 +25,7 @@
   const GASTOS = ['Publicidad', 'Empaques', 'Envíos', 'Transporte', 'Arriendo', 'Servicios', 'Diseño', 'Comisiones bancarias', 'Impuestos', 'Otros'];
   const NIVELES = { explorador: 'Explorador', navegante: 'Navegante', comandante: 'Comandante' };
   const TABLAS = ['categorias', 'proveedores', 'productos', 'clientes', 'equipo', 'ventas', 'compras', 'gastos', 'ajustes_inventario', 'pagos_equipo'];
-  const OPCIONALES = ['mensajes'];   // tablas que pueden no existir todavía en Supabase
+  const OPCIONALES = ['mensajes', 'pedidos'];   // tablas que pueden no existir todavía en Supabase
   const EMPRESA_BASE = { id: 1, nombre: 'Gatoarisco', nit: '', telefono: '', ciudad: '', correo: '', saldo_inicial: 0, tarifas: { explorador: 2000, navegante: 2500, comandante: 3000 }, pct_calle: 50, pct_fondo: 20, descuento_embajador: 10 };
 
   /* =================================================================
@@ -311,6 +311,7 @@
         <section class="tarjeta ancha"><header><h2>Ventas de los últimos 30 días</h2><span class="nota">${money(Object.values(porDia).reduce((a, b) => a + b, 0))}</span></header>${barras(datos)}</section>
         <section class="tarjeta"><header><h2>Pendientes</h2></header>
           <div class="alertas">
+            ${alerta(DB.pedidos.filter((p) => p.estado === 'pendiente').length, 'pedidos web esperando pago · ' + money(DB.pedidos.filter((p) => p.estado === 'pendiente').reduce((a, p) => a + int(p.total), 0)), 'pedidos', 'ambar')}
             ${alerta(DB.mensajes.filter((m) => !m.leido).length, 'mensajes sin leer', 'mensajes')}
             ${alerta(porCobrar.length, 'ventas por cobrar · ' + money(porCobrar.reduce((a, v) => a + tv(v).total, 0)), 'ventas', 'ambar')}
             ${alerta(porDespachar.length, 'pedidos por despachar', 'ventas', 'ambar')}
@@ -447,6 +448,33 @@
         <td data-l="Orden"><button class="ico-btn" data-accion="cat-subir" data-id="${esc(c.id)}" aria-label="Subir" ${i === 0 ? 'disabled' : ''}>↑</button><button class="ico-btn" data-accion="cat-bajar" data-id="${esc(c.id)}" aria-label="Bajar" ${i === lista.length - 1 ? 'disabled' : ''}>↓</button></td>
         <td class="acciones"><button class="ico-btn" data-accion="editar-categoria" data-id="${esc(c.id)}" aria-label="Editar">✎</button></td>
       </tr>`).join('')}</tbody></table>` : vacio('Todavía no hay categorías. Crea la primera para empezar a ordenar la tienda.', 'nueva-categoria', 'Crear categoría')}`;
+    },
+  };
+
+  VISTAS.pedidos = {
+    titulo: 'Pedidos web',
+    html() {
+      if ((DB.falta || []).includes('pedidos')) return `<div class="vacio"><p>Falta crear la tabla de pedidos en Supabase. Abre <b>SQL Editor</b>, pega el archivo <code>supabase/pedidos.sql</code> del repositorio y toca <b>Run</b>. Luego recarga el panel.</p></div>`;
+      const f = UI.filtros.ped || (UI.filtros.ped = { ver: 'pendiente' });
+      const lista = DB.pedidos.filter((p) => f.ver === 'todos' || p.estado === f.ver).sort((a, b) => String(b.creado).localeCompare(String(a.creado)));
+      const fecha = (c) => { const d = new Date(c); return isNaN(d) ? '' : d.toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); };
+      return `
+      <p class="nota">Cuando el cliente te mande el comprobante de Nequi, busca la referencia aquí y confirma el pago: se registra la venta, el cliente y baja el inventario.</p>
+      <div class="filtros">${selector('f-ped', { pendiente: 'Esperando pago', pagado: 'Pagados', cancelado: 'Cancelados', todos: 'Todos' }, f.ver)}<span class="nota">${lista.length} pedidos</span></div>
+      ${lista.length ? `<div class="mensajes">${lista.map((p) => `
+        <article class="mensaje ${p.estado === 'pendiente' ? 'nuevo' : ''}">
+          <header><b class="num">${esc(p.referencia)}</b><b>${esc(p.nombre)}</b>${chip(p.estado === 'pendiente' ? 'Esperando pago' : p.estado === 'pagado' ? 'Pagado' : 'Cancelado', p.estado === 'pendiente' ? 'ambar' : p.estado === 'pagado' ? 'menta' : 'gris')}<span class="nota">${fecha(p.creado)}</span></header>
+          <p>${(p.items || []).map((i) => `${i.cant} × ${esc(i.nombre)}${i.variante ? ' (' + esc(i.variante) + ')' : ''}`).join(' · ')}</p>
+          <p class="nota">${esc(p.ciudad)} · ${esc(p.direccion)}${p.codigo ? ' · código ' + esc(p.codigo) : ''}${p.nota ? ' · ' + esc(p.nota) : ''}</p>
+          <footer>
+            <span><b class="num" style="font-size:18px">${money(p.total)}</b> <span class="nota">${p.envio ? 'incluye envío ' + money(p.envio) : 'envío gratis'}</span></span>
+            <div class="botones">
+              <a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="https://wa.me/${esc(waNum(p.telefono))}?text=${encodeURIComponent('Hola, ' + p.nombre + '. Te escribimos de Gatoarisco por tu pedido ' + p.referencia + '.')}">WhatsApp</a>
+              ${p.estado === 'pendiente' ? `<button class="btn btn-primary btn-sm" data-accion="pedido-pagado" data-id="${p.id}">Confirmar pago</button><button class="btn btn-ghost btn-sm" data-accion="pedido-cancelar" data-id="${p.id}">Cancelar</button>` : ''}
+              ${p.venta_id && porId('ventas', p.venta_id) ? `<button class="btn btn-ghost btn-sm" data-accion="recibo" data-id="${p.venta_id}">Recibo</button>` : ''}
+            </div>
+          </footer>
+        </article>`).join('')}</div>` : vacio(DB.pedidos.length ? 'No hay pedidos con este filtro.' : 'Todavía no hay pedidos web. Llegan aquí cuando alguien compra en la tienda y elige pagar con Nequi.')}`;
     },
   };
 
@@ -1036,6 +1064,18 @@
     'nueva-compra': () => formCompra(), 'editar-compra': (b) => formCompra(porId('compras', b.dataset.id)),
     'nuevo-producto': () => formProducto(), 'editar-producto': (b) => formProducto(prod(b.dataset.id)),
     'nuevo-ajuste': () => formAjuste(), ajustar: (b) => formAjuste(b.dataset.id), categorias: () => irA('categorias'), 'nueva-categoria': () => formCategoria(), 'editar-categoria': (b) => formCategoria(porId('categorias', b.dataset.id)), 'cat-subir': (b) => moverCategoria(b.dataset.id, -1), 'cat-bajar': (b) => moverCategoria(b.dataset.id, 1),
+    async 'pedido-pagado'(b) {
+      const p = porId('pedidos', b.dataset.id);
+      if (!(await confirmar(`¿Ya te llegaron ${money(p.total)} por Nequi con la referencia ${p.referencia}? Se registra la venta y baja el inventario.`))) return;
+      let c = DB.clientes.find((x) => x.telefono && x.telefono.replace(/\D/g, '') === p.telefono.replace(/\D/g, ''));
+      if (!c) c = await guardar('clientes', { id: nuevoId(), nombre: p.nombre, telefono: p.telefono, ciudad: p.ciudad, direccion: p.direccion });
+      const emb = p.codigo ? DB.equipo.find((x) => x.codigo && x.codigo.toUpperCase() === String(p.codigo).toUpperCase()) : null;
+      const items = (p.items || []).map((i) => { const pr = prod(i.producto_id); return { producto_id: i.producto_id, nombre: i.nombre, variante: i.variante || '', cant: int(i.cant), precio: int(i.precio), costo: pr ? int(pr.costo) : 0 }; });
+      const v = await guardar('ventas', { id: nuevoId(), fecha: hoy(), canal: emb ? 'embajador' : 'web', cliente_id: c.id, vendedor_id: emb ? emb.id : null, items, descuento: int(p.descuento), envio: int(p.envio), metodo: 'Nequi', pago: 'pagado', entrega: 'por_despachar', anulada: false, nota: 'Pedido web ' + p.referencia });
+      await guardar('pedidos', Object.assign({}, p, { estado: 'pagado', venta_id: v.id }));
+      aviso(`Pago confirmado. Venta #${v.numero} registrada.`); render(); pintarContador();
+    },
+    async 'pedido-cancelar'(b) { const p = porId('pedidos', b.dataset.id); if (await confirmar(`¿Cancelar el pedido ${p.referencia}?`)) { await guardar('pedidos', Object.assign({}, p, { estado: 'cancelado' })); render(); pintarContador(); } },
     async 'msj-leido'(b) { const m = porId('mensajes', b.dataset.id); await guardar('mensajes', Object.assign({}, m, { leido: !m.leido })); render(); pintarContador(); },
     async 'msj-responder'(b) { const m = porId('mensajes', b.dataset.id); window.open(b.href, b.target || '_self'); await guardar('mensajes', Object.assign({}, m, { leido: true, respondido: true })); render(); pintarContador(); },
     'nuevo-cliente': () => formCliente(), 'editar-cliente': (b) => formCliente(porId('clientes', b.dataset.id)),
@@ -1063,6 +1103,8 @@
   function pintarContador() {
     const n = (DB && DB.mensajes || []).filter((m) => !m.leido).length;
     const b = document.querySelector('[data-cuenta-mensajes]'); if (b) { b.textContent = n; b.hidden = !n; }
+    const np = (DB && DB.pedidos || []).filter((p) => p.estado === 'pendiente').length;
+    const bp = document.querySelector('[data-cuenta-pedidos]'); if (bp) { bp.textContent = np; bp.hidden = !np; }
   }
   function irA(v) { if (!VISTAS[v]) v = 'resumen'; UI.vista = v; ls.set('ga_panel_vista', v); document.body.classList.remove('menu-abierto'); render(); window.scrollTo(0, 0); }
 
@@ -1075,7 +1117,7 @@
     $('#vista').innerHTML = V.html();
     // filtros que se escriben
     const enl = (id, grupo, k) => { const el = $('#' + id); if (!el) return; el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => { UI.filtros[grupo][k] = el.value; const pos = el.selectionStart; render(); const n = $('#' + id); if (n && n.tagName === 'INPUT') { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* nada */ } } }); };
-    enl('f-q', 'ventas', 'q'); enl('f-estado', 'ventas', 'estado'); enl('f-canal', 'ventas', 'canal'); enl('f-inv', 'inv', 'q'); enl('f-cat', 'inv', 'cat'); enl('f-cli', 'cli', 'q'); enl('f-msj', 'msj', 'ver');
+    enl('f-q', 'ventas', 'q'); enl('f-estado', 'ventas', 'estado'); enl('f-canal', 'ventas', 'canal'); enl('f-inv', 'inv', 'q'); enl('f-cat', 'inv', 'cat'); enl('f-cli', 'cli', 'q'); enl('f-msj', 'msj', 'ver'); enl('f-ped', 'ped', 'ver');
     const fe = $('#form-empresa');
     if (fe) fe.addEventListener('submit', async (e) => {
       e.preventDefault(); const f = fe;
