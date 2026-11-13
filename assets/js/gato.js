@@ -119,15 +119,39 @@
     return fin - t0;
   };
 
-  let ctx;
-  function bufido() {
+  /* ---- sonidos reales: bufidos, gruñidos y un maullido enojado ----
+     Grabaciones de gatos (Pixabay) recortadas y niveladas en assets/audio.
+     Si un archivo no carga, se usa el bufido sintetizado de arriba. */
+  const AUDIO = 'assets/audio/';
+  const SONIDOS = {
+    todos: ['bufido-1', 'maullido-1', 'grunido-1', 'grunido-2', 'grunido-3', 'grunido-4'],
+    corre: ['bufido-1', 'grunido-1', 'grunido-3', 'grunido-4'],
+  };
+  const cache = {};
+  function clip(n) {
+    if (!cache[n]) { const a = new Audio(AUDIO + n + '.mp3'); a.preload = 'auto'; cache[n] = a; }
+    return cache[n];
+  }
+  let ctx, ultimoSonido = '';
+  function sintetizado() {
     try {
       ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
       if (ctx.state === 'suspended') ctx.resume();
-      const x = Math.random();
-      window.gatoSonido(ctx, ctx.destination, ctx.currentTime + 0.01, { gruñido: x < 0.65 });
+      window.gatoSonido(ctx, ctx.destination, ctx.currentTime + 0.01, { gruñido: Math.random() < 0.65 });
     } catch (e) { /* sin audio */ }
   }
+  function bufido(tipo) {
+    const lista = SONIDOS[tipo] || SONIDOS.todos;
+    let n; do { n = lista[Math.floor(Math.random() * lista.length)]; } while (n === ultimoSonido && lista.length > 1);
+    ultimoSonido = n;
+    try {
+      const a = clip(n).cloneNode();
+      a.volume = 0.85; a.playbackRate = 0.94 + Math.random() * 0.12; // cada vez suena un poco distinto
+      const p = a.play(); if (p && p.catch) p.catch(sintetizado);
+    } catch (e) { sintetizado(); }
+  }
+  // precargar al primer toque, sin gastar datos antes de que alguien interactúe
+  addEventListener('pointerdown', () => SONIDOS.todos.forEach(clip), { once: true, passive: true });
 
   /* ---- montar el gato que se asoma sobre el pie de página ---- */
   function montar() {

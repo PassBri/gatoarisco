@@ -102,7 +102,7 @@
       s.modo = 'bufa'; s.quieto = 1.3; s.ampObj = 0; s.arcoObj = 1;
       s.huyeA = px == null ? s.dir : (px < xPantalla() ? 1 : -1);
       decir(FRASES[Math.floor(Math.random() * FRASES.length)]);
-      if (window.gatoBufido) window.gatoBufido();
+      if (window.gatoBufido) window.gatoBufido('corre');
     }
     let tGlobo;
     function decir(txt) {
