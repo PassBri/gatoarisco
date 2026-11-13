@@ -279,7 +279,7 @@
       qty = Math.max(1, Math.min(Math.max(1, p.stock), qty + Number(b.dataset.q))); $('#qty').textContent = qty;
     }));
     const add = $('#add');
-    if (add) add.addEventListener('click', () => { Cart.add(p.id, variante, qty); toast(azar(AL_AGREGAR)); });
+    if (add) add.addEventListener('click', () => { Cart.add(p.id, variante, qty); if (window.gatoRasguno) window.gatoRasguno(0.8); toast(azar(AL_AGREGAR)); });
     const rel = $('#relacionados');
     if (rel) rel.innerHTML = D.productos.filter((x) => x.categoria === p.categoria && x.id !== p.id).slice(0, 4).map(card).join('');
   }

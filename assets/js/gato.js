@@ -151,7 +151,23 @@
     } catch (e) { sintetizado(); }
   }
   // precargar al primer toque, sin gastar datos antes de que alguien interactúe
-  addEventListener('pointerdown', () => SONIDOS.todos.forEach(clip), { once: true, passive: true });
+  let despierto = false;
+  addEventListener('pointerdown', () => { despierto = true; SONIDOS.todos.concat('rasguno').forEach(clip); }, { once: true, passive: true });
+
+  /* ---- rasguño: acompaña el zarpazo dibujado sobre las tarjetas y el "agregar al carrito" ---- */
+  let ultimoRasguno = 0;
+  function rasguno(vol) {
+    const ahora = Date.now(); if (ahora - ultimoRasguno < 700) return; ultimoRasguno = ahora;
+    try { const a = clip('rasguno').cloneNode(); a.volume = vol == null ? 0.8 : vol; a.playbackRate = 0.95 + Math.random() * 0.1; const p = a.play(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* sin audio */ }
+  }
+  // al pasar el mouse sobre un producto (solo después de que la persona ya tocó la página: los navegadores no dejan sonar antes)
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)');
+  addEventListener('pointerover', (e) => {
+    if (!despierto || e.pointerType !== 'mouse' || quieto.matches) return;
+    const card = e.target.closest && e.target.closest('.card'); if (!card) return;
+    if (e.relatedTarget && card.contains(e.relatedTarget)) return;
+    rasguno(0.3);
+  }, { passive: true });
 
   /* ---- montar el gato que se asoma sobre el pie de página ---- */
   function montar() {
@@ -199,5 +215,6 @@
 
   window.gatoMontar = montar;
   window.gatoBufido = bufido;
+  window.gatoRasguno = rasguno;
   window.gatoMirar = mirar;
 })();
