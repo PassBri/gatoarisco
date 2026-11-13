@@ -25,7 +25,7 @@ Funciona en celular y computador, y se puede instalar en el celular como app (PW
 - **Compras:** a proveedores; suben las existencias y actualizan el costo.
 - **Inventario:** existencias calculadas (inicial + compras + ajustes − ventas), márgenes, fotos y productos nuevos.
 - **Mensajes:** lo que la gente escribe en el formulario de contacto del inicio; se responde por WhatsApp o correo con un toque.
-- **Clientes, Proveedores y Equipo:** comisiones de embajadores (por unidad según nivel) y vendedores en calle (% de la utilidad), con pagos y saldos.
+- **Clientes, Proveedores y Equipo:** comisiones de embajadores (porcentaje del precio de cada producto, según nivel) y vendedores en calle (% de la utilidad), con pagos y saldos.
 - **Gastos, Caja y Estado de resultados** mes a mes.
 - **Ajustes:** datos de la empresa, tarifas de comisión, interruptor de la Fundación y respaldo.
 

@@ -455,6 +455,19 @@
     });
   }
 
+  /* ---------- embajadores: porcentajes que se cambian en el panel (Ajustes) ---------- */
+  function comisiones() {
+    const base = { explorador: 10, navegante: 12, comandante: 15 };
+    const c = Object.assign({}, base, CFG.comisiones || {});
+    const pct = (k) => { const v = Number(c[k]); return v > 0 && v <= 100 ? v : base[k]; };
+    const fmt = (n) => String(n).replace('.', ',');
+    const desc = Number(CFG.descuentoEmbajador) || 0;
+    $$('[data-descuento]').forEach((el) => { el.textContent = fmt(desc); });
+    $$('[data-comision]').forEach((el) => { el.textContent = fmt(pct(el.dataset.comision)) + ' %'; });
+    const ejemplo = 18000; const paga = Math.round(ejemplo * (1 - desc / 100));
+    $$('[data-ejemplo]').forEach((el) => { el.textContent = `Ej.: en un producto de ${money(ejemplo)} ganas ${money(Math.round(paga * pct(el.dataset.ejemplo) / 100))}.`; });
+  }
+
   /* ---------- arranque ---------- */
   ajustes().then(arrancar);
   function arrancar() {
@@ -468,6 +481,7 @@
   if (run) run().then(() => window.gatoMirar && gatoMirar()).catch(() => { const m = $('main'); if (m) m.insertAdjacentHTML('afterbegin', '<p class="wrap alert alert-amber" style="margin-top:20px">No pudimos cargar los productos. Recarga la página.</p>'); });
   contacto();
   pago();
+  comisiones();
   formToWhatsApp('#form-embajador', 'Hola, quiero ser embajador de Gatoarisco.');
   formToWhatsApp('#form-vendedor', 'Hola, quiero vender con la Fundación Gatoarisco.');
   }

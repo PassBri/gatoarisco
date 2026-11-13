@@ -26,7 +26,7 @@
   const NIVELES = { explorador: 'Explorador', navegante: 'Navegante', comandante: 'Comandante' };
   const TABLAS = ['categorias', 'proveedores', 'productos', 'clientes', 'equipo', 'ventas', 'compras', 'gastos', 'ajustes_inventario', 'pagos_equipo'];
   const OPCIONALES = ['mensajes', 'pedidos'];   // tablas que pueden no existir todavía en Supabase
-  const EMPRESA_BASE = { id: 1, nombre: 'Gatoarisco', nit: '', telefono: '', ciudad: '', correo: '', saldo_inicial: 0, tarifas: { explorador: 2000, navegante: 2500, comandante: 3000 }, pct_calle: 50, pct_fondo: 20, descuento_embajador: 10 };
+  const EMPRESA_BASE = { id: 1, nombre: 'Gatoarisco', nit: '', telefono: '', ciudad: '', correo: '', saldo_inicial: 0, tarifas: { explorador: 10, navegante: 12, comandante: 15 }, pct_calle: 50, pct_fondo: 20, descuento_embajador: 10 };
 
   /* =================================================================
      Almacenamiento
@@ -172,11 +172,15 @@
     const neto = sub - int(v.descuento);
     return { sub, costo, unidades, neto, total: neto + int(v.envio), util: neto - costo };
   }
+  // comisión de embajadores: porcentaje del valor de los productos según el nivel.
+  // Si quedaron guardados los valores viejos en pesos (más de 100), se usan los porcentajes por defecto.
+  const PCT_BASE = { explorador: 10, navegante: 12, comandante: 15 };
+  function pctNivel(k) { const v = Number((DB.empresa.tarifas || {})[k]); return v > 0 && v <= 100 ? v : PCT_BASE[k] || 10; }
   function comision(v) {
     if (v.anulada || !v.vendedor_id) return 0;
     const p = porId('equipo', v.vendedor_id); if (!p) return 0;
     const t = tv(v);
-    if (p.tipo === 'embajador') return t.unidades * int((DB.empresa.tarifas || {})[p.nivel || 'explorador']);
+    if (p.tipo === 'embajador') return Math.max(0, Math.round(t.neto * pctNivel(p.nivel || 'explorador') / 100)); // productos ya con descuento, sin envío
     return Math.max(0, Math.round(t.util * (Number(DB.empresa.pct_calle) || 0) / 100));
   }
   function fondo(v) {
@@ -907,11 +911,11 @@
   VISTAS.equipo = {
     titulo: 'Equipo y comisiones', boton: ['nueva-persona', 'Nueva persona'],
     html() {
-      const sal = saldosEquipo(); const tar = DB.empresa.tarifas || {}; CTX = { sal };
+      const sal = saldosEquipo(); CTX = { sal };
       const total = Object.values(sal).reduce((a, x) => a + Math.max(0, x.saldo), 0);
       return `
       <div class="kpis">${kpi('Embajadores', DB.equipo.filter((p) => p.tipo === 'embajador' && p.activo).length)}${kpi('Vendedores en calle', DB.equipo.filter((p) => p.tipo === 'calle' && p.activo).length)}${kpi('Comisiones por pagar', money(total), 'solo de ventas ya pagadas', total ? 'mal' : '')}</div>
-      <p class="nota">Embajadores: ${Object.entries(NIVELES).map(([k, n]) => `${n} ${money(tar[k])}`).join(' · ')} por unidad. Vendedores en calle: ${DB.empresa.pct_calle} % de la utilidad de cada venta. Se cambia en Ajustes.</p>
+      <p class="nota">Embajadores: ${Object.entries(NIVELES).map(([k, n]) => `${n} ${pctNivel(k)} %`).join(' · ')} del valor de los productos vendidos (lo que paga el cliente, ya con su descuento y sin el envío). Vendedores en calle: ${DB.empresa.pct_calle} % de la utilidad de cada venta. Se cambia en Ajustes.</p>
       ${ayudaHoja}
       ${hoja('equipo', DB.equipo)}
       <div class="subt-fila"><h3 class="subt">Pagos de comisiones</h3><button class="btn btn-ghost btn-sm" data-accion="nuevo-pago">+ Registrar pago</button></div>
@@ -993,7 +997,7 @@
   VISTAS.ajustes = {
     titulo: 'Ajustes',
     html() {
-      const e = DB.empresa; const t = e.tarifas || {};
+      const e = DB.empresa;
       return `
       <div class="rejilla-2">
         <form class="tarjeta" id="form-empresa">
@@ -1003,7 +1007,7 @@
           <div class="dos"><div class="campo"><label for="e-ciudad">Ciudad</label><input id="e-ciudad" value="${esc(e.ciudad || '')}"></div><div class="campo"><label for="e-correo">Correo</label><input id="e-correo" value="${esc(e.correo || '')}"></div></div>
           <div class="campo"><label for="e-saldo">Saldo inicial en caja</label><input id="e-saldo" inputmode="numeric" value="${int(e.saldo_inicial)}"></div>
           <h3 class="subt">Comisiones</h3>
-          <div class="tres">${Object.entries(NIVELES).map(([k, n]) => `<div class="campo"><label for="e-t-${k}">${n} (por unidad)</label><input id="e-t-${k}" inputmode="numeric" value="${int(t[k])}"></div>`).join('')}</div>
+          <div class="tres">${Object.entries(NIVELES).map(([k, n]) => `<div class="campo"><label for="e-t-${k}">${n} (% del producto)</label><input id="e-t-${k}" inputmode="decimal" value="${pctNivel(k)}"></div>`).join('')}</div>
           <div class="tres"><div class="campo"><label for="e-pc">Vendedor en calle (% utilidad)</label><input id="e-pc" inputmode="numeric" value="${e.pct_calle}"></div><div class="campo"><label for="e-pf">Fondo social (% utilidad)</label><input id="e-pf" inputmode="numeric" value="${e.pct_fondo}"></div><div class="campo"><label for="e-de">Descuento con código (%)</label><input id="e-de" inputmode="numeric" value="${e.descuento_embajador}"></div></div>
           <button class="btn btn-primary" type="submit">Guardar ajustes</button>
         </form>
@@ -1527,8 +1531,11 @@
     const fe = $('#form-empresa');
     if (fe) fe.addEventListener('submit', async (e) => {
       e.preventDefault(); const f = fe;
-      const emp = Object.assign({}, DB.empresa, { nombre: val(f, 'e-nombre'), nit: val(f, 'e-nit') || null, telefono: val(f, 'e-tel') || null, ciudad: val(f, 'e-ciudad') || null, correo: val(f, 'e-correo') || null, saldo_inicial: int(val(f, 'e-saldo')), tarifas: Object.fromEntries(Object.keys(NIVELES).map((k) => [k, int(val(f, 'e-t-' + k))])), pct_calle: Number(val(f, 'e-pc')) || 0, pct_fondo: Number(val(f, 'e-pf')) || 0, descuento_embajador: Number(val(f, 'e-de')) || 0 });
-      try { estado('Guardando…', 'ocupado'); DB.empresa = await ST.guardarEmpresa(emp); estado('Guardado', 'ok'); aviso('Ajustes guardados'); render(); } catch (err) { estado('No se guardó', 'error'); aviso('No se pudo guardar: ' + err.message, 'error'); }
+      const emp = Object.assign({}, DB.empresa, { nombre: val(f, 'e-nombre'), nit: val(f, 'e-nit') || null, telefono: val(f, 'e-tel') || null, ciudad: val(f, 'e-ciudad') || null, correo: val(f, 'e-correo') || null, saldo_inicial: int(val(f, 'e-saldo')), tarifas: Object.fromEntries(Object.keys(NIVELES).map((k) => [k, Math.min(100, Math.max(0, Number(String(val(f, 'e-t-' + k)).replace(',', '.')) || 0))])), pct_calle: Number(val(f, 'e-pc')) || 0, pct_fondo: Number(val(f, 'e-pf')) || 0, descuento_embajador: Number(val(f, 'e-de')) || 0 });
+      try { estado('Guardando…', 'ocupado'); DB.empresa = await ST.guardarEmpresa(emp);
+        // la página de embajadores muestra estos porcentajes
+        try { await ST.setAjuste('comisiones', emp.tarifas); DB.ajustes.comisiones = emp.tarifas; } catch (e2) { /* la página usa los de por defecto */ }
+        estado('Guardado', 'ok'); aviso('Ajustes guardados'); render(); } catch (err) { estado('No se guardó', 'error'); aviso('No se pudo guardar: ' + err.message, 'error'); }
     });
     if (window.gatoMirar) gatoMirar();
     pintarContador();

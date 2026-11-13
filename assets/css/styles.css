@@ -281,6 +281,8 @@ main { flex: 1; padding-bottom: 96px; }
 .level { padding: 22px; display: flex; flex-direction: column; gap: 6px; }
 .level .amount { font-family: var(--font-mono); font-weight: 300; font-size: 34px; }
 .level.on { background: var(--night); color: #E8F4F8; }
+.level .ejemplo { font-family: var(--font-mono); font-size: 12px; letter-spacing: .02em; color: var(--text-2); margin-top: auto; padding-top: 6px; border-top: 1px dashed var(--line); }
+.level.on .ejemplo { color: var(--mint); border-top-color: rgba(115, 216, 199, .3); }
 .level.on .amount { color: var(--glow); }
 .level.on .eyebrow, .level.on p { color: #B8CCDC; }
 .level p { margin: 0; font-size: 14px; color: var(--text-2); }

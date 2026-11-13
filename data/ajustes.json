@@ -1,3 +1,4 @@
 {
-  "fundacion": false
+  "fundacion": false,
+  "comisiones": { "explorador": 10, "navegante": 12, "comandante": 15 }
 }

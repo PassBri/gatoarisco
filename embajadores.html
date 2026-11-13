@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@300;400&family=Saira:wght@200;300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/styles.css?v=202611121759">
+<link rel="stylesheet" href="assets/css/styles.css?v=202611131250">
 </head>
 <body data-page="embajadores">
 <a class="sr-only" href="#main">Saltar al contenido</a>
@@ -27,13 +27,13 @@
 <section class="wrap page-head">
   <p class="eyebrow">Programa de embajadores · la pandilla</p>
   <h1 class="h-display">Gana con tu código</h1>
-  <p style="max-width:60ch;color:var(--text-2);font-size:17px">Comparte tu código o tu enlace. Quien compra recibe 10 % de descuento y tú ganas por cada producto vendido. Sin inversión y sin inventario.</p>
+  <p style="max-width:60ch;color:var(--text-2);font-size:17px">Comparte tu código o tu enlace. Quien compra recibe <span data-descuento>10</span> % de descuento y tú ganas un porcentaje del precio de cada producto vendido: entre más caro el producto, más ganas. Sin inversión y sin inventario.</p>
 </section>
 <section class="wrap section">
   <div class="levels">
-  <div class="panel brackets level"><span class="eyebrow">Nivel 1</span><strong class="h-section" style="font-size:22px">Explorador</strong><span class="amount">$2.000</span><p>por producto vendido con tu código. Empiezas aquí desde la primera venta.</p></div>
-  <div class="panel brackets level on"><span class="eyebrow">Nivel 2</span><strong class="h-section" style="font-size:22px;color:#fff">Navegante</strong><span class="amount">$2.500</span><p>por producto cuando subes de nivel con tus ventas del mes.</p></div>
-  <div class="panel brackets level"><span class="eyebrow">Nivel 3</span><strong class="h-section" style="font-size:22px">Comandante</strong><span class="amount">$3.000</span><p>por producto para quienes más venden cada mes.</p></div>
+  <div class="panel brackets level"><span class="eyebrow">Nivel 1</span><strong class="h-section" style="font-size:22px">Explorador</strong><span class="amount" data-comision="explorador">10 %</span><p>del precio de cada producto vendido con tu código. Empiezas aquí desde la primera venta.</p><small class="ejemplo" data-ejemplo="explorador"></small></div>
+  <div class="panel brackets level on"><span class="eyebrow">Nivel 2</span><strong class="h-section" style="font-size:22px;color:#fff">Navegante</strong><span class="amount" data-comision="navegante">12 %</span><p>del precio de cada producto cuando subes de nivel con tus ventas del mes.</p><small class="ejemplo" data-ejemplo="navegante"></small></div>
+  <div class="panel brackets level"><span class="eyebrow">Nivel 3</span><strong class="h-section" style="font-size:22px">Comandante</strong><span class="amount" data-comision="comandante">15 %</span><p>del precio de cada producto para quienes más venden cada mes.</p><small class="ejemplo" data-ejemplo="comandante"></small></div>
 </div>
 </section>
 <section class="wrap section" style="padding-top:0">
@@ -50,6 +50,7 @@
       <h2 class="h-section" style="font-size:22px">Reglas claras</h2>
       <ul style="color:var(--text-2);padding-left:18px;line-height:1.7">
         <li>Ganas solo por tus propias ventas. No es multinivel ni cobramos por entrar.</li>
+        <li>Tu porcentaje se calcula sobre lo que paga el cliente por los productos, ya con su descuento y sin contar el envío.</li>
         <li>La comisión se confirma cuando termina el plazo de cambios del pedido.</li>
         <li>El nivel se calcula con las ventas del mes y sube automáticamente.</li>
         <li>Tu enlace se ve así: <code>passbri.github.io/gatoarisco/?ref=TUCODIGO</code></li>
@@ -73,6 +74,6 @@
 <script src="assets/js/config.js?v=202611121759"></script>
 <script src="assets/js/gato.js?v=202611130015"></script>
 <script src="assets/js/gato-corre.js?v=202611130015"></script>
-<script src="assets/js/app.js?v=202611130015"></script>
+<script src="assets/js/app.js?v=202611131250"></script>
 </body>
 </html>
