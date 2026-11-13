@@ -457,15 +457,17 @@
 
   /* ---------- embajadores: porcentajes que se cambian en el panel (Ajustes) ---------- */
   function comisiones() {
-    const base = { explorador: 10, navegante: 12, comandante: 15 };
+    const base = { explorador: 15, navegante: 18, comandante: 20, minimo: 1500 };
     const c = Object.assign({}, base, CFG.comisiones || {});
     const pct = (k) => { const v = Number(c[k]); return v > 0 && v <= 100 ? v : base[k]; };
     const fmt = (n) => String(n).replace('.', ',');
     const desc = Number(CFG.descuentoEmbajador) || 0;
     $$('[data-descuento]').forEach((el) => { el.textContent = fmt(desc); });
     $$('[data-comision]').forEach((el) => { el.textContent = fmt(pct(el.dataset.comision)) + ' %'; });
-    const ejemplo = 18000; const paga = Math.round(ejemplo * (1 - desc / 100));
-    $$('[data-ejemplo]').forEach((el) => { el.textContent = `Ej.: en un producto de ${money(ejemplo)} ganas ${money(Math.round(paga * pct(el.dataset.ejemplo) / 100))}.`; });
+    const min = Math.max(0, Number(c.minimo) || 0);
+    const gana = (precio, k) => Math.max(Math.round(precio * (1 - desc / 100) * pct(k) / 100), min);
+    $$('[data-minimo]').forEach((el) => { el.textContent = money(min); el.closest('[data-minimo-caja]') && (el.closest('[data-minimo-caja]').hidden = !min); });
+    $$('[data-ejemplo]').forEach((el) => { const k = el.dataset.ejemplo; el.textContent = `Ej.: producto de ${money(38000)} → ${money(gana(38000, k))} · pin de ${money(10000)} → ${money(gana(10000, k))}`; });
   }
 
   /* ---------- arranque ---------- */

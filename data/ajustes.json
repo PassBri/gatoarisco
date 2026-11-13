@@ -1,4 +1,4 @@
 {
   "fundacion": false,
-  "comisiones": { "explorador": 10, "navegante": 12, "comandante": 15 }
+  "comisiones": { "explorador": 15, "navegante": 18, "comandante": 20, "minimo": 1500 }
 }

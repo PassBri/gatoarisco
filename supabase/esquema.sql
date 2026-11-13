@@ -23,7 +23,7 @@ create table if not exists public.empresa (
   nombre text not null default 'Gatoarisco',
   nit text, telefono text, ciudad text, correo text,
   saldo_inicial integer not null default 0,
-  tarifas jsonb not null default '{"explorador": 10, "navegante": 12, "comandante": 15}',  -- % del valor de los productos
+  tarifas jsonb not null default '{"explorador": 15, "navegante": 18, "comandante": 20, "minimo": 1500}',  -- % de cada producto y mínimo en pesos por producto
   pct_calle numeric not null default 50,
   pct_fondo numeric not null default 20,
   descuento_embajador numeric not null default 10
